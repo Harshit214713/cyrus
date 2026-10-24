@@ -19,6 +19,16 @@ describe("GET /api/health", () => {
     expect(typeof body.time).toBe("string");
   });
 
+  it("separates a missing email key from an unverified sender", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    expect((await (await GET()).json()).email).toBe("missing_key");
+    vi.stubEnv("RESEND_API_KEY", "re_test");
+    vi.stubEnv("EMAIL_FROM", "");
+    expect((await (await GET()).json()).email).toBe("unverified_from");
+    vi.stubEnv("EMAIL_FROM", "cyrus.ai <no-reply@example.com>");
+    expect((await (await GET()).json()).email).toBe("ok");
+  });
+
   it("reports db and auth when both are set", async () => {
     vi.stubEnv("DATABASE_URL", "postgres://example");
     vi.stubEnv("SESSION_SECRET", "a-secret-longer-than-16");

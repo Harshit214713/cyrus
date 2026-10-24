@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({
   verifyTurnstile: vi.fn(),
@@ -28,6 +28,7 @@ beforeEach(() => {
   m.storeCode.mockReset().mockResolvedValue(true);
   m.sendCodeEmail.mockReset().mockResolvedValue({ sent: true });
 });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("POST /api/auth/email/start", () => {
   it("sends a code and returns the challenge", async () => {
@@ -65,5 +66,18 @@ describe("POST /api/auth/email/start", () => {
   it("reports send_failed when the provider errors", async () => {
     m.sendCodeEmail.mockResolvedValue({ sent: false, error: "boom" });
     expect(await (await post({ email: "a@b.co" })).json()).toEqual({ ok: false, reason: "send_failed", error: "boom" });
+  });
+
+  /* the real sender against a mocked Resend: a 422 with a body that is not
+     JSON still reaches the caller as a readable reason, never a 500 */
+  it("passes a legible reason through when Resend answers 422 with a non-JSON body", async () => {
+    const real = await vi.importActual<typeof import("@/lib/server/email")>("@/lib/server/email");
+    m.sendCodeEmail.mockImplementation(real.sendCodeEmail);
+    vi.stubEnv("RESEND_API_KEY", "re_test");
+    vi.stubEnv("EMAIL_FROM", "cyrus.ai <no-reply@example.com>");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>upstream error</html>", { status: 422 })));
+    const res = await post({ email: "a@b.co" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: false, reason: "send_failed", error: "resend rejected the request (422)" });
   });
 });

@@ -3,6 +3,7 @@
    account. The client uses these to decide which sign-in buttons can
    actually complete on this deploy.                                  ═ */
 import { dbReady } from "@/lib/db";
+import { emailStatus } from "@/lib/server/email";
 import { githubReady, googleReady, sessionsReady } from "@/lib/server/auth";
 import { turnstileActive } from "@/lib/server/turnstile";
 
@@ -16,6 +17,7 @@ export async function GET() {
     auth: sessionsReady(),
     google: googleReady(),
     github: githubReady(),
+    email: emailStatus(),
     captcha: turnstileActive(),
     time: new Date().toISOString(),
   });

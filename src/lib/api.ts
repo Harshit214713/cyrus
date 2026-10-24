@@ -17,6 +17,8 @@ export type Health = {
   ok: boolean; db: boolean; auth: boolean;
   /** can this server finish a Google / GitHub sign-in (booleans, never keys) */
   google?: boolean; github?: boolean; captcha?: boolean;
+  /** email sign-in: no key, a key with no verified sender, or ready */
+  email?: "missing_key" | "unverified_from" | "ok";
 };
 export type EmailVerifyRes = {
   ok: boolean; user?: ServerUser; offline?: boolean; reason?: string; challenge?: string | null;
