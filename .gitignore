@@ -22,3 +22,6 @@ scripts/org-login-cache.json
 # raw GitHub crawl output - regenerable with scripts/crawl-github.mjs,
 # and the derived modules in src/data are what the app reads
 /data/
+
+# local run logs from the roster/resolve scripts
+scratch/logs/

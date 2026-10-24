@@ -8,7 +8,7 @@ export const PROGRAMS: Program[] = [
     tag: "Write real code for open-source orgs, mentored full-time over the summer.",
     pay: "$1,500 – $3,300", payNote: "STIPEND",
     status: "closed", window: "Applications close April",
-    orgs: "900+ orgs", slots: "~3,800 students",
+    orgs: "519 orgs archived", slots: "12,095 projects 2016-2026",
     phases: [
       { label: "Org applications", s: 0, e: 1.6, c: "#3b6ea5" },
       { label: "Student applications", s: 2.1, e: 3.8, c: "#a97b1f" },
@@ -22,7 +22,7 @@ export const PROGRAMS: Program[] = [
     tag: "Paid remote internships in open source for people from under-represented groups.",
     pay: "$8,000 USD", payNote: "PER INTERNSHIP",
     status: "upcoming", window: "Dec cohort pairing opens Nov",
-    orgs: "150+ communities", slots: "~120 interns",
+    orgs: "61 communities archived", slots: "437 internships 2022-2026",
     phases: [
       { label: "Outreach period", s: 10.2, e: 11.2, c: "#3b6ea5" },
       { label: "Applications", s: 1.6, e: 3.1, c: "#a97b1f" },
@@ -36,7 +36,7 @@ export const PROGRAMS: Program[] = [
     tag: "Cloud & ecosystem mentored projects across Linux Foundation host projects.",
     pay: "$1,500 – $3,000", payNote: "PER TERM",
     status: "live", window: "Term 3 running now · Sep – Nov",
-    orgs: "100+ projects", slots: "300+ mentees",
+    orgs: "24 orgs archived", slots: "941 projects 2022-2026",
     phases: [
       { label: "Term 1", s: 2, e: 5, c: "#3b6ea5" },
       { label: "Term 2", s: 5, e: 8, c: "#2f7d72" },
@@ -49,7 +49,7 @@ export const PROGRAMS: Program[] = [
     tag: "Summer contributions to Eclipse Foundation projects with structured mentoring.",
     pay: "€500 – €1,200", payNote: "PER PROJECT",
     status: "closed", window: "Runs May – August",
-    orgs: "40+ projects", slots: "~60 contributors",
+    orgs: "No published roster", slots: "Counts unpublished",
     phases: [
       { label: "Project proposals", s: 2.8, e: 4.2, c: "#3b6ea5" },
       { label: "Teams formed", s: 4.2, e: 4.9, c: "#a97b1f" },
@@ -62,7 +62,7 @@ export const PROGRAMS: Program[] = [
     tag: "A remote, batch-based alternative to internships on real open-source teams.",
     pay: "Paid tracks", payNote: "UP TO $2K/MO",
     status: "live", window: "Fall batch in session",
-    orgs: "30+ partner orgs", slots: "Small cohorts",
+    orgs: "No published roster", slots: "Small cohorts",
     phases: [
       { label: "Spring batch", s: 2.5, e: 5, c: "#3b6ea5" },
       { label: "Summer batch", s: 5.3, e: 7.8, c: "#2f7d72" },
@@ -75,7 +75,7 @@ export const PROGRAMS: Program[] = [
     tag: "Three-month open-source contribution sprint, biggest women-led program in India.",
     pay: "Leaderboard prizes", payNote: "SWAG + CERTS",
     status: "live", window: "Contributions Aug – Nov",
-    orgs: "200+ projects", slots: "Open to all",
+    orgs: "No published roster", slots: "Open to all",
     phases: [
       { label: "Registration", s: 6.3, e: 7.4, c: "#3b6ea5" },
       { label: "Contribution period", s: 7.4, e: 10.6, c: "#a97b1f", active: true },
@@ -101,7 +101,7 @@ export const PROGRAMS: Program[] = [
     tag: "Eight mentored weeks building real Bitcoin and Lightning tech, with a stipend.",
     pay: "~$2,500 USD", payNote: "PER PROJECT",
     status: "upcoming", window: "Applications open December",
-    orgs: "Bitcoin ecosystem", slots: "~50 contributors",
+    orgs: "32 orgs archived", slots: "66 projects in 2026",
     phases: [
       { label: "Applications", s: 11, e: 12, c: "#3b6ea5" },
       { label: "Learning period", s: 0.5, e: 2.5, c: "#a97b1f" },
@@ -128,7 +128,7 @@ export const PROGRAMS: Program[] = [
     tag: "One month of pull requests, first-timer friendly, the on-ramp for most contributors.",
     pay: "Badge + tree", payNote: "PER PARTICIPANT",
     status: "live", window: "All of October · you are here",
-    orgs: "All of GitHub", slots: "Millions",
+    orgs: "Any GitHub project", slots: "Open to all",
     phases: [
       { label: "Prep & first-timer issues", s: 8.3, e: 9, c: "#2f7d72" },
       { label: "Hacktoberfest", s: 9, e: 10, c: "#3e7d4f", active: true },
@@ -156,7 +156,7 @@ export const PROGRAMS: Program[] = [
     tag: "IIT Bombay mentored fellowship on FLOSS tooling: Scilab, Python, Oxide and more.",
     pay: "Unpaid", payNote: "NO HONORARIUM",
     status: "closed", window: "2026 cycle completed 8 June",
-    orgs: "IIT Bombay tracks", slots: "4,500+ applied in 2026",
+    orgs: "IIT Bombay tracks", slots: "Cohort size unpublished",
     phases: [
       { label: "Registration", s: 2, e: 3, c: "#3b6ea5" },
       { label: "Screening tasks", s: 3, e: 4, c: "#a97b1f" },

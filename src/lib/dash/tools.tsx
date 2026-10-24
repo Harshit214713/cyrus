@@ -31,24 +31,41 @@ function ToolNote({ children }: { children: ReactNode }) {
 
 
 /* ── 2. mentor finder ─────────────────────────────────────────── */
-type GRow = { y: number; u: string; t: string; o: string; tt?: string[]; m?: string };
+type GRow = { y: number; u: string; t: string; o: string; tt?: string[]; m?: string; url?: string; program?: string };
+
+/** where a project record's own page lives: GSoC builds the url from year + uid,
+    the LFX / Outreachy / Summer of Bitcoin archive rows carry the real link. */
+const projectUrl = (p: GRow) =>
+  p.url || `${GSOC_URL}/programs/${p.y}/projects/${p.u}`;
+
+const MENTOR_PROGRAMS = ["GSoC", "LFX", "Summer of Bitcoin"];
 
 function MentorsSection() {
   const [rows, setRows] = useState<GRow[] | null>(null);
   const [q, setQ] = useState("");
   const [org, setOrg] = useState("all");
+  const [prog, setProg] = useState("all");
 
+  /* every archive that names its mentors. Outreachy is deliberately absent: its
+     API publishes the project and the org but not the people, so 437 Outreachy
+     projects contribute 0 mentor rows and saying so beats padding the count. */
   useEffect(() => {
     let live = true;
-    fetch("/data/gsoc-projects.json").then((r) => (r.ok ? r.json() : null))
-      .then((j) => live && setRows(j?.projects ?? []))
-      .catch(() => live && setRows([]));
+    Promise.all([
+      fetch("/data/gsoc-projects.json").then((r) => (r.ok ? r.json() : null)),
+      fetch("/data/otherProjects.json").then((r) => (r.ok ? r.json() : null)),
+    ]).then(([g, o]) => {
+      if (!live) return;
+      const gsoc: GRow[] = (g?.projects ?? []).map((p: GRow) => ({ ...p, program: "GSoC" }));
+      const rest: GRow[] = (o?.projects ?? []).filter((p: GRow) => p.m).map((p: GRow) => ({ ...p, program: p.program ?? "LFX" }));
+      setRows([...gsoc, ...rest]);
+    }).catch(() => live && setRows([]));
     return () => { live = false; };
   }, []);
 
   const mentors = useMemo(() => {
     if (!rows) return null;
-    const map = new Map<string, { parts: Set<string>; n: number; techs: Set<string>; last: number; sample: GRow }>();
+    const map = new Map<string, { parts: Set<string>; progs: Set<string>; n: number; techs: Set<string>; last: number; sample: GRow }>();
     for (const p of rows) {
       if (!p.m) continue;
       for (const raw of p.m.split(",")) {
@@ -58,13 +75,14 @@ function MentorsSection() {
         const e = map.get(key);
         if (e) {
           e.n++; e.parts.add(p.o); e.last = Math.max(e.last, p.y);
+          e.progs.add(p.program ?? "GSoC");
           (p.tt ?? []).forEach((t) => e.techs.add(t));
-        } else map.set(key, { parts: new Set([p.o]), n: 1, techs: new Set(p.tt ?? []), last: p.y, sample: p });
+        } else map.set(key, { parts: new Set([p.o]), progs: new Set([p.program ?? "GSoC"]), n: 1, techs: new Set(p.tt ?? []), last: p.y, sample: p });
       }
     }
     return [...map.entries()].map(([key, e]) => ({
       name: (e.sample.m ?? "").split(",").find((x) => x.trim().toLowerCase() === key)?.trim() ?? key,
-      n: e.n, orgs: [...e.parts], techs: [...e.techs].slice(0, 4), last: e.last, sample: e.sample,
+      n: e.n, orgs: [...e.parts], progs: [...e.progs], techs: [...e.techs].slice(0, 4), last: e.last, sample: e.sample,
     }));
   }, [rows]);
 
@@ -77,19 +95,25 @@ function MentorsSection() {
     if (!mentors) return [];
     const needle = q.trim().toLowerCase();
     return mentors
-      .filter((m) => (org === "all" || m.orgs.includes(org)) && (!needle || m.name.toLowerCase().includes(needle) || m.orgs.some((o) => o.toLowerCase().includes(needle))))
+      .filter((m) => (org === "all" || m.orgs.includes(org))
+        && (prog === "all" || m.progs.includes(prog))
+        && (!needle || m.name.toLowerCase().includes(needle) || m.orgs.some((o) => o.toLowerCase().includes(needle))))
       .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
       .slice(0, 24);
-  }, [mentors, q, org]);
+  }, [mentors, q, org, prog]);
 
   return (
     <Card>
-      <DashHead title="Mentor finder" sub={rows ? `${shown.length} of ${fmt(mentors?.length ?? 0)} people who actually mentored a GSoC project, searchable by name or organization.` : "Reading the mentor names out of the project archive."} />
-      <div className="grid md:grid-cols-[1fr_220px] gap-3 mt-6 [&>*]:min-w-0">
+      <DashHead title="Mentor finder" sub={rows ? `${shown.length} of ${fmt(mentors?.length ?? 0)} people named as a mentor on an accepted ${MENTOR_PROGRAMS.join(", ")} project, searchable by name or organization.` : "Reading the mentor names out of the project archives."} />
+      <div className="grid md:grid-cols-[1fr_190px_170px] gap-3 mt-6 [&>*]:min-w-0">
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dim"><Ic d={DP.search} size={14} /></span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="mentor or organization…" className={fin} />
         </div>
+        <select value={prog} onChange={(e) => setProg(e.target.value)} className={sel} aria-label="Program">
+          <option value="all">Any program</option>
+          {MENTOR_PROGRAMS.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
         <select value={org} onChange={(e) => setOrg(e.target.value)} className={sel} aria-label="Organization">
           <option value="all">Any organization</option>
           {orgOptions.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -108,23 +132,25 @@ function MentorsSection() {
                 </span>
               </span>
               <span className="flex gap-1.5 shrink-0">
-                {m.techs.slice(0, 3).map((t) => <span key={t} className="font-mono text-[9px] rounded-full border border-line bg-card px-2 py-[3px] text-cocoa truncate max-w-[90px]">{t}</span>)}
+                {m.progs.map((p) => <span key={p} className="font-mono text-[9px] rounded-full border border-line bg-card px-2 py-[3px] text-cocoa">{p}</span>)}
+                {m.techs.slice(0, 2).map((t) => <span key={t} className="font-mono text-[9px] rounded-full border border-line bg-card px-2 py-[3px] text-cocoa truncate max-w-[90px]">{t}</span>)}
               </span>
               <span className="font-mono text-[10.5px] font-bold text-accent shrink-0">{m.n} {m.n === 1 ? "project" : "projects"}</span>
-              <a href={`${GSOC_URL}/programs/${m.sample.y}/projects/${m.sample.u}`} target="_blank" rel="noopener" className={btn("outline", "sm", "shrink-0")}>Project ↗</a>
+              <a href={projectUrl(m.sample)} target="_blank" rel="noopener" className={btn("outline", "sm", "shrink-0")}>Project ↗</a>
             </div>
           ))}
         </div>
       ) : (
         <div className="mt-6 flex items-center gap-6 flex-wrap">
           <div className="text-dim shrink-0 w-[190px]"><ArtPeople /></div>
-          <p className="text-[13.5px] text-dim max-w-[400px] leading-[1.7]">
+          <p className="text-[13.5px] text-dim max-w-[420px] leading-[1.7]">
             No mentor by that name in the archive. The {fmt(rows?.length ?? 0)} projects we read
-            cover 2022 through 2026, and only the mentors GitHub listed on the project record are here.
+            cover 2022 through 2026, and only the mentors the program itself published on the
+            project record are here - a person can mentor without ever being named on one.
           </p>
         </div>
       )}
-      <ToolNote>Names and organizations copied verbatim from the official GSoC project export in /data/gsoc-projects.json. Availability is not implied.</ToolNote>
+      <ToolNote>Names and organizations copied verbatim from the official project exports in /data/gsoc-projects.json and /data/otherProjects.json. Outreachy publishes its 437 accepted projects but not who mentored them, so no Outreachy mentor appears here. Availability is not implied.</ToolNote>
     </Card>
   );
 }

@@ -5,7 +5,7 @@
 <h1 align="center">cyrus.ai</h1>
 
 <p align="center">
-  <b>The developer-program platform.</b> 1,528 AI-agent repos, 6,682 open-source program projects and 40,017 real open issues - one warm, fast, self-refreshing catalog on Next.js 16 with <b>real OAuth sign-in</b> and a <b>full server backend on Neon Postgres</b>.
+  <b>The developer-program platform.</b> 1,528 AI-agent repos, 13,539 open-source program projects and 40,017 real open issues - one warm, fast, self-refreshing catalog on Next.js 16 with <b>real OAuth sign-in</b> and a <b>full server backend on Neon Postgres</b>.
 </p>
 
 <p align="center">
@@ -97,7 +97,7 @@ Every shot below is the live site, captured at 1440px in the light theme.
   </tr>
   <tr>
     <td align="center"><b>Dashboard tools</b> - the co-pilot matcher shortlisting repos and live issues</td>
-    <td align="center"><b>Project archive</b> - 6,682 mentored projects, filter by year, org and tech</td>
+    <td align="center"><b>Project archive</b> - 13,539 mentored projects, filter by year, org and tech</td>
   </tr>
   <tr>
     <td><img src="docs/readme/shots/platform-features.png" alt="Platform features" width="100%"/></td>
@@ -116,7 +116,7 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 | Section | Size | Source of truth |
 |---|---:|---|
 | Agent-skills catalog | **1,528 repos** · 33.79M stars · 4.61M forks | GitHub REST via `gh api` |
-| Open-source programs | **6,682 projects** · 402 orgs · 3,075 tags | GSoC archive (2022-2026, 5,238) + other programs (LFX 941 / Outreachy 437 / Summer of Bitcoin 66) |
+| Open-source programs | **13,539 projects** · 616 orgs · 3,075 tags | GSoC archive (2016-2026, 12,095) + other programs (LFX 941 / Outreachy 437 / Summer of Bitcoin 66) |
 | Good-first issues board | **40,017 open issues** across the catalog | GitHub Search API via `scripts/build-issue-index.mjs` |
 | Sponsors directory | **82 funded repos**, found in the top 260 by stars | `.github/FUNDING.yml`, read repo by repo |
 | Program deep dives | **13** full program pages, each with its own organization roster | `src/data/programDetails.ts` |
@@ -165,7 +165,7 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 | `/issues` | Good-first-issue finder over 40,017 real open issues - labels, languages, orgs, difficulty |
 | `/organizations` · `/organizations/:login` | 43 real GitHub orgs with live stats and GSoC / LFX / MLH program badges |
 | `/leaderboard` | Real contributor rankings from merged pull requests |
-| `/projects` | The 6,682-project mentored-program archive (2022-2026), filter by year / org / tech |
+| `/projects` | The 13,539-project mentored-program archive (2016-2026 for GSoC, 2022-2026 for the rest), filter by year / org / tech |
 | `/programs` · `/programs/:id` | 13 funded programs - calendars, pay bands, who they are for, and their project archives |
 | `/skills` | The 1,528-repo agent-skills catalog, filterable and downloadable |
 | `/sponsors` | 82 catalog repos that actually take funding, read from their FUNDING.yml |

@@ -75,7 +75,7 @@ export default function Trust() {
         <section className={`${W} mt-[54px]`}>
           <div className="flex items-baseline gap-3 flex-wrap mb-7">
             <h2 className="font-display font-extrabold tracking-[-.02em] text-[clamp(24px,3vw,34px)]">Active snapshot verifications</h2>
-            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · 6,682 records under review each cycle</span>
+            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · 13,539 records under review each cycle</span>
           </div>
           <div className="grid grid-cols-3 gap-5 max-[900px]:grid-cols-1">
             {VERIFIED.map(([b, src, sub, n, tone, badge]) => (

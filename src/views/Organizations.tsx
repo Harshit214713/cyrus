@@ -3,13 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "@/lib/router";
 import { ORGS, PROGRAMS } from "../data/orgs";
-import { programsOf } from "../data/programAssoc";
+import { programsOf, assocNote } from "../data/programAssoc";
+import { ROSTER, ROSTER_LABEL, ROSTER_STATS } from "../data/rosterOrgs";
 import { avatarOf, byStars, fmt } from "../lib/util";
 import type { Org } from "../lib/types";
 import { useStore } from "../lib/store";
 import { btn, Chip, LevelChip, OrgImg, Word } from "../components/ui";
 
 const W = "max-w-[1240px] mx-auto px-6";
+
+/* the directory now carries the whole confirmed roster, so it paginates */
+const PAGE = 48;
 
 /* ── page head ─────────────────────────────────────────────── */
 function PageHead() {
@@ -68,7 +72,7 @@ function OrgCard({ org }: { org: Org }) {
         <div className="flex gap-1.5 flex-wrap items-center" aria-label="Programs this organization runs">
           <span className="font-mono text-[9px] uppercase tracking-[.11em] text-dim">runs</span>
           {progs.map((a) => (
-            <Link key={a.id} to={`/programs/${a.id}`} title={`${a.label} - ${a.n} tracked repo${a.n === 1 ? "" : "s"} advertise it`}>
+            <Link key={a.id} to={`/programs/${a.id}`} title={assocNote(a)}>
               <Chip tone={a.tone}>{a.label} · {a.n}</Chip>
             </Link>
           ))}
@@ -89,6 +93,94 @@ function OrgCard({ org }: { org: Org }) {
   );
 }
 
+/* ── the rest of the program roster ───────────────────────────
+   The cards above need a GitHub account we could confirm, because every number
+   on them is GitHub's. 616 organizations ran one of the four archives -
+   GSoC 2016-2026 and the rest 2022-2026. The difference appears here: the same organization, named
+   and counted by the program that accepted its projects, with no invented stars. */
+const ROSTER_TONE: Record<string, "blue" | "green" | "cat" | "purple"> = {
+  gsoc: "blue", lfx: "green", outreachy: "cat", sob: "purple",
+};
+const BAND = 40;
+
+function RosterBand() {
+  const [q, setQ] = useState("");
+  const [shown, setShown] = useState(BAND);
+  const profiles = useMemo(() => new Set(ORGS.map((o) => o.login.toLowerCase())), []);
+  const rest = useMemo(() => ROSTER.filter((r) => !r.login || !profiles.has(r.login.toLowerCase())), [profiles]);
+  const hits = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    return n ? rest.filter((r) => r.name.toLowerCase().includes(n) || r.category.toLowerCase().includes(n)) : rest;
+  }, [rest, q]);
+
+  const row = (r: (typeof ROSTER)[number]) => {
+    const inner = (
+      <>
+        <span className="flex items-center gap-2.5 min-w-0">
+          {r.login
+            ? <OrgImg src={avatarOf(r.login, 48)} name={r.login} className="w-[22px] h-[22px] rounded-[7px] object-cover bg-clay shrink-0" />
+            : <span aria-hidden className="w-[22px] h-[22px] rounded-[7px] bg-clay shrink-0 grid place-items-center font-mono text-[9px] text-dim">{r.name.slice(0, 1)}</span>}
+          <b className="text-[13px] font-semibold text-ink truncate">{r.name}</b>
+        </span>
+        <span className="flex gap-1.5 flex-wrap items-center shrink-0">
+          {r.programs.map((p) => (
+            <span key={p.program} title={`${fmt(p.projects)} accepted ${ROSTER_LABEL[p.program] ?? p.program} project${p.projects === 1 ? "" : "s"} (${p.years[0]}-${p.years[p.years.length - 1]})`}>
+              <Chip tone={ROSTER_TONE[p.program] ?? "cat"}>
+                {ROSTER_LABEL[p.program] ?? p.program} · {fmt(p.projects)}
+              </Chip>
+            </span>
+          ))}
+          {!r.login && (
+            <span className="font-mono text-[9px] uppercase tracking-[.1em] text-dim" title="No GitHub account could be confirmed for this organization, so it shows no stars, repos or profile.">no account</span>
+          )}
+        </span>
+      </>
+    );
+    const cls = "flex items-center justify-between gap-3 py-2.5 px-3 rounded-[12px] border border-transparent hover:border-line hover:bg-cream transition-all";
+    return r.login
+      ? <a key={r.name} href={`https://github.com/${r.login}`} target="_blank" rel="noopener" className={cls}>{inner}</a>
+      : <span key={r.name} className={cls}>{inner}</span>;
+  };
+
+  return (
+    <section className={`${W} pt-6 pb-2`}>
+      <div className="bg-card border border-line rounded-[22px] p-6 shadow-soft max-[700px]:p-4">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
+              The rest of the <Word>program roster</Word>
+            </h2>
+            <p className="text-cocoa text-[13px] leading-[1.6] mt-1.5 max-w-[720px]">
+              {fmt(ROSTER_STATS.orgs)} organizations ran a mentored project, across{" "}
+              {fmt(ROSTER_STATS.projects)} accepted projects in the four archives that publish one.{" "}
+              {fmt(ROSTER_STATS.withGithub)} have a GitHub account we could confirm and {ORGS.length} of those
+              are profiled above; the {fmt(rest.length)} here are the remainder, shown exactly as their program
+              recorded them.
+            </p>
+          </div>
+          <input value={q} onChange={(e) => { setQ(e.target.value); setShown(BAND); }}
+            aria-label="Search the program roster" placeholder="Search the roster"
+            className="w-full max-w-[240px] bg-paper border border-line rounded-xl px-3.5 py-2 text-[13.5px] outline-none transition-all focus:border-accent" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 mt-4 max-[860px]:grid-cols-1">
+          {hits.slice(0, shown).map(row)}
+        </div>
+        {!hits.length && (
+          <p className="text-dim text-[13px] py-8 text-center">No roster organization by that name - the {ORGS.length} profiled above are searched by the box at the top of the page.</p>
+        )}
+        {hits.length > shown && (
+          <div className="flex justify-center mt-5">
+            <button type="button" onClick={() => setShown((s) => s + BAND * 2)} className={btn("outline", "sm")}>
+              Show more · {fmt(hits.length - shown)} left
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ── page ──────────────────────────────────────────────────── */
 export default function Organizations() {
   const [params, setParams] = useSearchParams();
@@ -100,6 +192,7 @@ export default function Organizations() {
   );
   const [tag, setTag] = useState(params.get("tag") ?? "all");
   const [prog, setProg] = useState(params.get("prog") ?? "all");
+  const [shown, setShown] = useState(PAGE);
 
   /* every filter change rewrites the whole query, so stacked facets
      survive and the sync effect below never sees a partial URL */
@@ -148,6 +241,9 @@ export default function Organizations() {
     (!q.trim() || (o.login + " " + o.name + " " + o.tagline + " " + o.tags.join(" ")).toLowerCase().includes(q.trim().toLowerCase()))
   ).sort(byStars), [q, level, tag, prog]);
 
+  /* any filter change goes back to the first page of results */
+  useEffect(() => { setShown(PAGE); }, [q, level, tag, prog]);
+
   const fin = "w-full bg-paper border border-line rounded-xl px-3.5 py-2.5 text-[14px] outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_rgba(34, 197, 94,.12)]";
 
   return (
@@ -180,15 +276,26 @@ export default function Organizations() {
           <b className="text-accent">{list.length}</b> organization{list.length === 1 ? "" : "s"} found
         </p>
         {list.length ? (
-          <div className="grid grid-cols-4 gap-4 max-[1100px]:grid-cols-3 max-[840px]:grid-cols-2 max-[540px]:grid-cols-1">
-            {list.map((o) => <OrgCard key={o.login} org={o} />)}
-          </div>
+          <>
+            <div className="grid grid-cols-4 gap-4 max-[1100px]:grid-cols-3 max-[840px]:grid-cols-2 max-[540px]:grid-cols-1">
+              {list.slice(0, shown).map((o) => <OrgCard key={o.login} org={o} />)}
+            </div>
+            {list.length > shown && (
+              <div className="flex justify-center mt-8">
+                <button type="button" onClick={() => setShown((s) => s + PAGE * 2)} className={btn("outline", "md")}>
+                  Show more organizations · {fmt(list.length - shown)} left
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-16 text-dim">
             No organizations match those filters. <button className="text-accent font-semibold hover:underline cursor-pointer" onClick={clearUrl}>Clear filters</button>
           </div>
         )}
       </section>
+
+      <RosterBand />
 
       {/* the full program directory moved to /programs - this band is the bridge */}
       <section className={`${W} pt-14 pb-6`}>

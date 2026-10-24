@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "@/lib/router";
 import { PROGRAMS } from "../data/orgs";
-import { TOPIC_ID_OF, useRoster } from "../lib/programRoster";
+import { TOPIC_ID_OF, useRoster, ARCHIVE_IDS } from "../lib/programRoster";
+import { useMentors } from "../lib/mentorIndex";
 import { PROGRAM_META, PROGRAM_REPOS } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
 import { PROGRAM_DETAILS, programLink } from "../data/programDetails";
@@ -176,6 +177,110 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
 }
 
 
+/* ── the organizer's own headline totals, quoted rather than computed ──
+   Our archive covers the years we crawled. The program has been running far
+   longer, and its own front page publishes the all-time figures, so they are
+   shown next to ours with the source named - never blended into them. */
+const PUBLISHED: Record<string, { source: string; stats: [string, string][] }> = {
+  gsoc: {
+    source: "summerofcode.withgoogle.com",
+    stats: [
+      ["1000+", "open source organizations"],
+      ["21K+", "mentors"],
+      ["22K+", "new contributors"],
+      ["48M+", "lines of code"],
+      ["123", "countries"],
+      ["21", "years running"],
+    ],
+  },
+};
+
+function PublishedBand({ id }: { id: string }) {
+  const p = PUBLISHED[id];
+  if (!p) return null;
+  return (
+    <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+      <h2 className="panel-h text-[17px] mb-1">The organizer's <Word>own</Word> totals</h2>
+      <p className="text-cocoa text-[12.5px] mb-5">
+        Every year the program has run, as published on <a href={`https://${p.source}`} target="_blank" rel="noopener" className="text-accent underline underline-offset-2">{p.source}</a> -
+        quoted here, not counted by us. The numbers further down this page are what our archive holds.
+      </p>
+      <div className="grid grid-cols-3 gap-x-5 gap-y-5 max-[640px]:grid-cols-2">
+        {p.stats.map(([v, k]) => (
+          <div key={k}>
+            <b className="font-display font-extrabold text-[25px] tracking-[-.02em] leading-none block">{v}</b>
+            <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim">{k}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── the mentors named on the archived project records ── */
+function MentorSection({ id }: { id: string }) {
+  const m = useMentors(id);
+  const [shown, setShown] = useState(12);
+  if (!m.ready) return null;
+
+  if (!m.program?.mentors) {
+    return (
+      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+        <h2 className="panel-h text-[17px] mb-2">Mentors in the <Word>record</Word></h2>
+        <p className="text-cocoa text-[13px] leading-[1.65]">
+          The project archive we hold for this program names the intern on every row and the
+          organization on most, but no mentor names - so there is no list to show here and no
+          number to invent. The organizer's own pages are the source for who did the mentoring.
+        </p>
+      </section>
+    );
+  }
+
+  const t = m.program;
+  return (
+    <section>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
+        <div>
+          <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
+            Mentors named in the <Word>archive</Word>
+          </h2>
+          <p className="text-cocoa text-[12.5px] mt-1">
+            {fmt(t.mentors)} distinct names across {fmt(t.projectsWithMentors)} archived {t.label} projects
+            {t.years?.length ? <> · {t.years[0]}-{t.years[t.years.length - 1]}</> : null}
+          </p>
+        </div>
+        <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
+          from the project records · {m.generated}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 max-[700px]:grid-cols-1">
+        {t.top.slice(0, shown).map((p) => (
+          <div key={p.name} className="bg-card border border-line rounded-[14px] px-4 py-3 flex items-center gap-3 shadow-soft">
+            <span className="w-[26px] h-[26px] rounded-[8px] bg-clay shrink-0 grid place-items-center font-mono text-[10px] font-bold text-cocoa">
+              {p.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <b className="text-[13px] font-semibold block truncate">{p.name}</b>
+              <span className="font-mono text-[9.5px] text-dim block truncate">
+                {p.orgCount} org{p.orgCount === 1 ? "" : "s"} · {p.years.length ? p.years.join(" ") : "years not recorded"}
+              </span>
+            </span>
+            <b className="font-mono text-[11px] text-accent font-bold shrink-0">{p.projects}</b>
+          </div>
+        ))}
+      </div>
+
+      {t.top.length > shown && (
+        <button type="button" onClick={() => setShown((s) => s + 24)} className={btn("outline", "md", "mt-5")}>
+          Show more mentors · {fmt(t.top.length - shown)} left
+        </button>
+      )}
+      <p className="text-cocoa text-[11.5px] leading-[1.6] mt-4">{m.note}</p>
+    </section>
+  );
+}
+
 export default function ProgramDetail() {
   const { id } = useParams();
   const p = PROGRAMS.find((x) => x.id === id);
@@ -310,6 +415,10 @@ export default function ProgramDetail() {
               </p>
             </section>
           )}
+
+          <PublishedBand id={p.id} />
+
+          {(ARCHIVE_IDS as readonly string[]).includes(p.id) && <MentorSection id={p.id} />}
 
           <RosterSection id={p.id} topicId={TOPIC_ID_OF[p.id]} name={p.name} />
 
