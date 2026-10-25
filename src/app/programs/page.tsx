@@ -5,7 +5,7 @@ import { canonical } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Programs",
-  description: `${STATS.programs} tracked open-source programs - stipends, calendars, eligibility - plus a five-year archive of ${fmt(STATS.archive)} accepted mentored projects.`,
+  description: `${STATS.programs} tracked open-source programs - stipends, calendars, eligibility - plus ${fmt(STATS.archive)} project records read out of ${STATS.archivePrograms} of their own archives.`,
   alternates: { canonical: canonical("/programs") },
 };
 

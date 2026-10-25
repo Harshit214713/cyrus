@@ -45,7 +45,7 @@ export function homeCard(): OgCard {
     rows: [
       { k: "Open issues", v: `${fmt(STATS.issues)} across ${fmt(STATS.issueRepos)} repositories` },
       { k: "Programs", v: `${STATS.programs} tracked, all on the 2026 calendar` },
-      { k: "Projects", v: `${fmt(STATS.archive)} mentored program projects` },
+      { k: "Projects", v: `${fmt(STATS.archive)} program projects, ${STATS.archivePrograms} archives` },
       { k: "Organizations", v: `${ORGS.length} profiles, each named by a program` },
     ],
     foot: `Refreshed nightly from GitHub - ${SNAPSHOT}`,

@@ -24,13 +24,19 @@ export function AttentionList({ d, limit }: { d: Dash; limit?: number }) {
   if (!rows.length) {
     return (
       <Card>
-        <h2 className="panel-h-lg flex items-center gap-2.5">
-          <Ic d={DP.check} size={16} /> Nothing needs you
-        </h2>
-        <p className="text-cocoa text-[13.5px] mt-2">
-          Every tracked issue is accounted for, and you follow at least one
-          repository and one organization.
-        </p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="w-[34px] h-[34px] grid place-items-center rounded-[10px] border border-leaf/40 bg-leaf/10 text-leaf shrink-0">
+            <Ic d={DP.check} size={15} />
+          </span>
+          <div className="min-w-[220px] flex-1">
+            <h2 className="panel-h-lg">Nothing needs you</h2>
+            <p className="text-cocoa text-[13.5px] mt-1">
+              Every tracked issue is accounted for, and you follow at least one
+              repository and one organization.
+            </p>
+          </div>
+          <Link to="/dashboard/issues" className={btn("outline", "sm") + " shrink-0"}>Open My Issues</Link>
+        </div>
       </Card>
     );
   }
@@ -38,7 +44,7 @@ export function AttentionList({ d, limit }: { d: Dash; limit?: number }) {
     <Card className="p-0 overflow-hidden">
       <div className="flex items-baseline gap-3 px-5 pt-5 pb-3">
         <h2 className="panel-h-lg">Needs your attention</h2>
-        <span className="ml-auto font-mono text-[10.5px] text-dim">
+        <span className="ml-auto font-mono text-[10.5px] text-dim tabular-nums">
           {d.attention.length} open
         </span>
       </div>
@@ -48,15 +54,15 @@ export function AttentionList({ d, limit }: { d: Dash; limit?: number }) {
             ? "text-honey bg-honey/10 border-honey/35"
             : "text-denim bg-denim/8 border-denim/30";
           return (
-            <div key={a.title} className={"flex gap-4 px-5 py-4" + (i ? " border-t border-liness" : "")}>
+            <div key={a.title} className={"flex items-start gap-x-4 gap-y-3 px-5 py-4 max-[680px]:flex-wrap" + (i ? " border-t border-liness" : "")}>
               <span className={"mt-0.5 w-[26px] h-[26px] grid place-items-center rounded-[8px] shrink-0 border " + tone}>
                 <Ic d={a.tone === "warn" ? DP.clock : DP.issue} size={13} />
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[200px] flex-1">
                 <b className="block text-[13.5px] font-semibold leading-snug">{a.title}</b>
                 <p className="text-cocoa text-[12.5px] leading-[1.55] mt-1">{a.body}</p>
               </div>
-              <Link to={a.to} className={btn("outline", "sm") + " shrink-0 max-[680px]:hidden"}>
+              <Link to={a.to} className={btn("outline", "sm") + " shrink-0 max-[680px]:basis-full max-[680px]:ml-[42px]"}>
                 {a.cta}
               </Link>
             </div>

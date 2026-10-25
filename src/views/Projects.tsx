@@ -1,14 +1,16 @@
 "use client"
 /* ══ Projects.tsx — the program project archive: ~10k accepted GSoC
-   projects (fetched at runtime from /data/gsoc-projects.json) + the
-   flagship program repos, listed Contribo-style with a filter rail.
-   Cards never open an internal page - they redirect to the real
-   project page and show the organisation name.                    ═ */
+   projects (fetched at runtime from /data/gsoc-projects.json), the other
+   four big archives' rows in /data/otherProjects.json, and one shard per
+   remaining program under /data/program-projects/ - listed Contribo-style
+   with a filter rail. Cards never open an internal page: they go to the
+   project's own page, and a row only ever carries what its source said. ═ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "@/lib/router";
 import { ORGS, PROGRAMS } from "../data/orgs";
 import { PROGRAM_REPOS, PROGRAM_META } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
+import { useProjectArchives } from "../lib/programProjects";
 import { fmt, hash } from "../lib/util";
 import { useStore } from "../lib/store";
 import { btn, Chip, Word } from "../components/ui";
@@ -22,9 +24,13 @@ interface Proj {
   title: string;
   org: string;
   orgUrl: string;
-  program: string;            // "GSoC" | "LFX" | "GSSoC" | "Outreachy"
+  program: string;            // the program's own display label
+  unit?: string;              // what one row is, in that program's words
   year: number;
-  size: "small" | "medium" | "large";
+  /** project scope, only where the archive states it - GSoC publishes this */
+  size?: "small" | "medium" | "large";
+  /** the round or cohort the source names on this row, when it names one */
+  season?: string;
   tags: string[];
   body: string;
   mentor: string;
@@ -52,17 +58,28 @@ interface RawFile { projects: RawGsoc[]; orgs: Record<string, { url?: string; ca
 
 /* stipend + hours bands per project size, deterministic per uid so a
    card always shows the same numbers. GSoC 2022-2026 ranges. */
-const BAND: Record<Proj["size"], { stipend: [number, number]; hours: [number, number] }> = {
+type Size = "small" | "medium" | "large";
+const BAND: Record<Size, { stipend: [number, number]; hours: [number, number] }> = {
   small: { stipend: [3.0, 3.6], hours: [150, 175] },
   medium: { stipend: [4.0, 4.9], hours: [300, 350] },
   large: { stipend: [5.3, 6.6], hours: [400, 450] },
 };
-const DIFF: Record<Proj["size"], string> = { small: "Easy", medium: "Medium", large: "Hard" };
-const DIFF_CLS: Record<Proj["size"], string> = {
+const DIFF: Record<Size, string> = { small: "Easy", medium: "Medium", large: "Hard" };
+const DIFF_CLS: Record<Size, string> = {
   small: "text-leaf border-leaf/40 bg-leaf/10",
   medium: "text-honey border-honey/45 bg-honey/12",
   large: "text-brick border-brick/40 bg-brick/10",
 };
+/* a shard chip says what kind of record the row is, in the words the build
+   step recorded for that program - never "accepted project" unless the
+   program itself published an archive */
+const EVIDENCE_UNIT: Record<string, string> = {
+  archive: "archived project",
+  api: "listed record",
+  listing: "published listing",
+  scrape: "published grid",
+};
+
 const inBand = ([a, b]: [number, number], seed: number, dp = 0) => {
   const v = a + (seed % 1000) / 1000 * (b - a);
   return dp ? v.toFixed(dp) : String(Math.round(v));
@@ -85,23 +102,28 @@ function ProjCard({ p }: { p: Proj }) {
   const { saved, toggleSaved, toast } = useStore();
   const on = saved.includes(p.url);
   const seed = hash(p.key);
-  const bd = BAND[p.size];
-  const stipend = inBand(bd.stipend, seed % 997, 1);
-  const hours = inBand(bd.hours, (seed >> 3) % 991);
+  /* only a program that publishes a project scope gets a size, and only GSoC
+     publishes a stipend band - everything else says what its own record says */
+  const sized = p.program === "GSoC" && !!p.size;
+  const bd = p.size ? BAND[p.size] : null;
+  const stipend = bd ? inBand(bd.stipend, seed % 997, 1) : "";
+  const hours = bd ? inBand(bd.hours, (seed >> 3) % 991) : "";
   return (
     <article className="group bg-card border border-line rounded-[18px] p-[18px] flex flex-col shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift hover:border-accent/45">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="card-title text-[16px] line-clamp-2">{p.title}</h3>
-          <p className="font-mono text-[10px] tracking-[.09em] uppercase text-dim mt-1.5 truncate">{p.org} • {p.year}</p>
+          <p className="font-mono text-[10px] tracking-[.09em] uppercase text-dim mt-1.5 truncate">{p.org} • {p.year}{p.season ? ` • ${p.season}` : ""}</p>
         </div>
-        <span className={`font-mono text-[9px] font-bold uppercase tracking-[.09em] px-2 py-1 rounded-md border shrink-0 ${DIFF_CLS[p.size]}`}>{DIFF[p.size] === "Easy" ? "BEGINNER" : DIFF[p.size] === "Medium" ? "INTERMEDIATE" : "ADVANCED"}</span>
+        {p.size && (
+          <span className={`font-mono text-[9px] font-bold uppercase tracking-[.09em] px-2 py-1 rounded-md border shrink-0 ${DIFF_CLS[p.size]}`}>{DIFF[p.size] === "Easy" ? "BEGINNER" : DIFF[p.size] === "Medium" ? "INTERMEDIATE" : "ADVANCED"}</span>
+        )}
       </div>
       <div className="flex gap-1.5 flex-wrap mt-3">
-        {p.program === "GSoC" ? <>
+        {sized ? <>
           <Chip tone="green">$ {stipend}k–${(+stipend + 2.6).toFixed(1)}k</Chip>
-          <span className="font-mono text-[9.5px] font-bold text-rust bg-peach border border-accent/35 rounded-full px-2 py-1">◷ {hours}h ({DIFF[p.size]})</span>
-        </> : <Chip tone="cat">{p.program} flagship</Chip>}
+          <span className="font-mono text-[9.5px] font-bold text-rust bg-peach border border-accent/35 rounded-full px-2 py-1">◷ {hours}h ({DIFF[p.size!]})</span>
+        </> : <Chip tone="cat">{p.program}{p.unit && p.unit !== "projects" ? ` · ${p.unit}` : p.size ? " flagship" : ""}</Chip>}
         {p.stars > 0 && <Chip tone="stars">★ {fmt(p.stars)}</Chip>}
       </div>
       <p className="text-cocoa text-[12.5px] leading-[1.55] mt-2.5 line-clamp-3">{p.body}</p>
@@ -154,6 +176,8 @@ export default function Projects() {
     SORT_VALUES.includes(rawSort as any) ? (rawSort as "recent" | "org" | "title") : "recent"
   );
   const [shown, setShown] = useState(60);
+  /* per-program shards + the honest list of programs that publish no archive */
+  const arc = useProjectArchives(PROGRAMS);
 
   /* every filter change rewrites the whole query so stacked facets
      survive, and the sync effect below never sees a partial URL */
@@ -215,16 +239,36 @@ export default function Projects() {
       key: `${(p as { program?: string }).program ?? "x"}${p.u}`, title: p.t, org: p.o,
       orgUrl: orgs[p.o]?.url || `https://github.com/search?q=${encodeURIComponent(p.o)}&type=organizations`,
       program: (p as { program?: string }).program ?? "LFX",
-      year: p.y, size: (["small", "medium", "large"].includes(p.s) ? p.s : "medium") as Proj["size"],
+      year: p.y, size: (["small", "medium", "large"].includes(p.s) ? p.s : undefined) as Proj["size"] | undefined,
+      /* these three carry their round in the same cell GSoC uses for scope, so
+         only a value that reads like a season is shown as one */
+      season: /\d{4}|round|cohort|term/i.test(p.s) ? p.s : undefined,
       tags: [...p.tt, ...p.tp].slice(0, 4), body: p.b, mentor: p.m,
       url: (p as { url?: string }).url || `https://mentorship.lfx.linuxfoundation.org/#all_all_all`, stars: 0,
     }));
-    return [...gsoc, ...extra, ...flagships];
-  }, [raw, other]);
+    /* one shard per remaining program - GSSoC, Season of KDE, 24 Pull Requests,
+       MLH, NSoC, Hacktoberfest, FOSSEE, Vercel OSS - each labelled with the
+       evidence its build step recorded, so a chip never overclaims */
+    const shards: Proj[] = arc.rows.map((r) => ({
+      key: r.key, title: r.title, org: r.org, orgUrl: r.orgUrl,
+      program: r.program,
+      /* the program's own word for a row when it publishes one, otherwise the
+         evidence type the build step recorded */
+      unit: arc.summaries[r.id]?.unit || EVIDENCE_UNIT[arc.summaries[r.id]?.evidence ?? ""],
+      year: r.year, season: r.season,
+      tags: r.tags, body: r.body, mentor: r.mentor, url: r.url, stars: r.stars,
+    }));
+    return [...gsoc, ...extra, ...shards, ...flagships];
+  }, [raw, other, arc.rows]);
 
   /* filter option lists derived from what actually loaded */
   const years = useMemo(() => [...new Set(all.map((p) => p.year))].sort((a, b) => b - a), [all]);
-  const progs = useMemo(() => [...new Set(["GSoC", ...flagships.map((f) => f.program), ...(other?.projects ?? []).map((p) => (p as { program?: string }).program ?? "LFX")])], [other]);
+  const progs = useMemo(() => [...new Set([
+    "GSoC",
+    ...flagships.map((f) => f.program),
+    ...(other?.projects ?? []).map((p) => (p as { program?: string }).program ?? "LFX"),
+    ...arc.rows.map((r) => r.program),
+  ])], [other, arc.rows]);
 
   const stacks = useMemo(() => {
     const c = new Map<string, number>();
@@ -246,6 +290,16 @@ export default function Projects() {
       : a.title.localeCompare(b.title));
     return r.map((p) => Object.assign({}, p, orgTarget(p)));
   }, [all, q, prog, diff, year, tech, sort]);
+
+  const counts = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const p of all) c.set(p.program, (c.get(p.program) ?? 0) + 1);
+    return c;
+  }, [all]);
+  const archiveChips = useMemo(
+    () => progs.filter((p) => (counts.get(p) ?? 0) > 0).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0)),
+    [progs, counts],
+  );
 
   const visible = list.slice(0, shown);
 
@@ -322,6 +376,21 @@ export default function Projects() {
         </aside>
 
         <section id="results" className="scroll-mt-24">
+          {/* one chip per program that actually publishes a project record */}
+          <div className="flex gap-2 flex-wrap pb-4">
+            <button onClick={() => { setProgUrl("all"); setShown(60); }}
+              className={`font-mono text-[11px] font-bold tracking-[.05em] rounded-full px-3.5 py-2 border transition-all cursor-pointer ${prog === "all" ? "bg-coffee border-coffee text-foam" : "bg-card border-line text-cocoa hover:border-accent hover:text-rust"}`}>
+              All programs
+            </button>
+            {archiveChips.map((p) => (
+              <button key={p} onClick={() => { setProgUrl(prog === p ? "all" : p); setShown(60); }}
+                title={`${fmt(counts.get(p) ?? 0)} projects from ${p}'s own record`}
+                className={`font-mono text-[11px] font-bold tracking-[.05em] rounded-full px-3.5 py-2 border transition-all cursor-pointer ${prog === p ? "bg-coffee border-coffee text-foam" : "bg-card border-line text-cocoa hover:border-accent hover:text-rust"}`}>
+                {p === "GSoC" ? "Google Summer of Code" : PROGRAM_META[p as ProgramName]?.label ?? p}
+                <span className="text-dim ml-1.5">{fmt(counts.get(p) ?? 0)}</span>
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2 flex-wrap pb-4">
             {[["all", "All Years"], ...years.map((y) => [String(y), String(y)] as [string, string])].map(([v, l]) => (
               <button key={v} onClick={() => { setYearUrl(v); setShown(60); }}

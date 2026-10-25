@@ -52,6 +52,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
+    ...PROGRAMS.map((p) => ({
+      url: url(`/programs/${p.id}/organizations`),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     ...ORGS.map((o) => ({
       url: url(`/organizations/${o.login}`),
       changeFrequency: "weekly" as const,

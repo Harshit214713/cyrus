@@ -13,6 +13,7 @@ import HomeHero from "../components/HomeHero";
 import { ORGS, PROGRAMS } from "../data/orgs";
 import { REPOS } from "../data/repos";
 import { CRAWL } from "../data/crawlStats";
+import { STATS } from "../lib/siteStats";
 import type { Program } from "../lib/types";
 import { avatarOf, fmt, byStars, CAT_META } from "../lib/util";
 import { Word, SectionTag, btn, OrgImg, Avatar } from "../components/ui";
@@ -121,10 +122,11 @@ function ProgCard({ p }: { p: Program }) {
         <p className="font-mono text-[10px] tracking-[.06em] uppercase text-dim mt-1.5">{p.window}</p>
       </div>
       <p className="card-desc flex-1">{p.tag}</p>
+      {/* the pay line only. The org/project counts used to sit to the right of
+          it, which made every card in the shelf read like a stat block. */}
       <div className="flex items-end justify-between gap-3 pt-3 border-t border-dashed border-line">
         <span className="font-display font-bold text-[15px]">{p.pay}
           <small className="block font-mono text-[9px] font-medium text-dim tracking-[.08em] uppercase mt-0.5">{p.payNote}</small></span>
-        <span className="text-right font-mono text-[10px] text-cocoa leading-[1.5]">{p.orgs}<br />{p.slots}</span>
       </div>
     </a>
   );
@@ -217,19 +219,39 @@ function OrgMarquee() {
       </span>
     </Link>
   );
-  const half = Math.ceil(ORGS.length / 2);
-  const rowA = ORGS.slice(0, half).map(card);
-  const rowB = ORGS.slice(half).map(card);
+  /* The track is duplicated so the loop has no seam, and the travel per cycle
+     is set to exactly one row's width with --marq-shift: cards x (250px card +
+     14px gap). Timing the animation from that same width keeps the crawl at one
+     calm speed no matter how many organizations sit on it. It used to inherit
+     the 46s token while carrying 182 cards per row, roughly 1,000px a second,
+     which read as a blur rather than a shelf you can browse.
+
+     The row is full-bleed and has no edge mask: the shelf now runs the whole
+     width of the screen, so a card travels from one edge to the other instead
+     of fading out in the middle of the page. */
+  const CARD = 264;
+  const SPEED = 52; /* px per second */
+  const top = [...ORGS].sort(byStars);
+  const track = (row: ReactNode[], reverse = false) => (
+    <div className="overflow-hidden mx-[calc(50%_-_50vw)]">
+      <div className={`marq-track animate-marq ${reverse ? "[animation-direction:reverse]" : ""}`}
+        style={{
+          animationDuration: `${Math.round((row.length * CARD) / SPEED)}s`,
+          ["--marq-shift" as string]: `-${row.length * CARD}px`,
+        }}>
+        {row}
+        {row}
+      </div>
+    </div>
+  );
   return (
     <Section id="orgs">
       <Head tag="Where the work is" title={<>Popular <Word>organizations</Word></>}
         sub="Hover to pause, click for the full profile with repositories, issues and contributor stats."
         side={<Link className={btn("dark", "md")} to="/organizations">Browse all</Link>} />
-      <div className="marq-mask overflow-hidden">
-        <div className="marq-track animate-marq">{rowA}{rowA}</div>
-      </div>
-      <div className="marq-mask overflow-hidden mt-3.5">
-        <div className="marq-track animate-marq [animation-direction:reverse]">{rowB}{rowB}</div>
+      <div className="flex flex-col gap-3.5">
+        {track(top.slice(0, 16).map(card))}
+        {track(top.slice(16, 32).map(card), true)}
       </div>
     </Section>
   );
@@ -240,7 +262,7 @@ function Skills () {
   return (
     <Section id="skills">
       <Head tag="Browse good open source projects" title={<>Most-starred in the <Word>catalog</Word>.</>}
-        sub={`${fmt(CRAWL.catalogRepos)} repositories indexed by language, topic and stars, refreshed from the GitHub API.`}
+        sub={`${fmt(STATS.catalog)} repositories indexed by language, topic and stars, refreshed from the GitHub API.`}
         side={<Link className={btn("outline", "md")} to="/skills">All skills</Link>} />
       <div className="grid grid-cols-4 gap-[14px] max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
         {cards.map((r) => {
@@ -266,13 +288,14 @@ function Skills () {
   );
 }
 
-/* ── the numbers, all from the crawl ──────────────────────── */
+/* ── the numbers the chrome quotes, all from src/lib/siteStats ───── */
+const ARCHIVE_AS_OF = "2026-10-25";
 function Band() {
   const cells: [string, string][] = [
-    [fmt(CRAWL.issues), "open issues indexed"],
-    [fmt(CRAWL.catalogRepos), "repositories catalogued"],
-    [fmt(ORGS.length), "organizations profiled"],
-    [String(PROGRAMS.length), "programs on the calendar"],
+    [fmt(STATS.issues), "open issues indexed"],
+    [fmt(STATS.archive), "program projects archived"],
+    [fmt(STATS.orgs), "organizations profiled"],
+    [String(STATS.programs), "programs on the calendar"],
   ];
   return (
     <Section id="band" className="!pt-[80px]">
@@ -285,7 +308,8 @@ function Band() {
         ))}
       </div>
       <p className="text-center font-mono text-[10.5px] text-dim mt-4">
-        Issue and repository counts are a snapshot of the GitHub search and REST APIs taken {CRAWL.crawledAt}.
+        Issues and repositories are a snapshot of the GitHub API taken {CRAWL.crawledAt}; the project
+        archive is the {STATS.archivePrograms} program records read on {ARCHIVE_AS_OF}.
       </p>
     </Section>
   );
@@ -337,7 +361,10 @@ function Voices() {
           <p className="text-steam text-[13.5px] max-w-[380px] leading-[1.6]">These cards are layout placeholders until we have quotes we can attribute. The tag on each one says so.</p>
         </div>
       </div>
-      <div className="marq-mask overflow-hidden py-8">
+      {/* no edge mask here: on this dark band the fade read as a black bar
+          closing off both ends of the row, so the cards simply run to the
+          viewport edge and are clipped by overflow. */}
+      <div className="overflow-hidden py-8">
         <div className="marq-track animate-marq gap-4 px-4">{row}{row}</div>
       </div>
     </section>

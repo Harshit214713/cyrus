@@ -1,11 +1,10 @@
 "use client"
 /* ══ copilot.tsx — the co-pilot: four steps from skills to work ═══════
-   You say what you write and what you want out of a season; it answers
-   with organizations, catalog repositories and live open issues, and
-   every card names the input that put it there. Nothing is generated:
-   organizations come from the live GitHub profiles and the program
-   participation record, repositories from the catalog that ships with
-   the site, issues from the /api/issues snapshot of the crawl.
+   You say what you write and whether you want targets or tasks; it answers
+   with one of the two, never both at once. Organizations come from the live
+   GitHub profiles and the program participation record, issues and catalog
+   repositories from the crawl snapshot and the catalog that ships with the
+   site. Nothing is generated: every card names the input that put it there.
    The scoring is three arithmetic rules you can read below, chosen so
    a result can be explained rather than trusted.
    ═════════════════════════════════════════════════════════════════════ */
@@ -17,6 +16,7 @@ import { ORGS, PROGRAMS } from "../../data/orgs";
 import { programsOf } from "../../data/programAssoc";
 import { loadRosterOrgs, useRosterIndex, rosterUnit } from "../programRoster";
 import type { RosterOrg } from "../programRoster";
+import { SECTOR_FACETS, sectorOfOrg } from "../orgClasses";
 import { CRAWL } from "../../data/crawlStats";
 import type { Repo } from "../types";
 import { avatarOf, fmt } from "../util";
@@ -91,10 +91,12 @@ const GROUPS: { name: string; skills: Skill[] }[] = [
 ];
 const ALL_SKILLS: Skill[] = GROUPS.flatMap((g) => g.skills);
 
+/* One question per run. Asking for organizations and issues together produced
+   a list that was neither a target nor a task, so the co-pilot now answers
+   exactly one of the two and the shortlist is the whole answer. */
 const GOALS: [string, string, string][] = [
-  ["orgs", "Find organizations", "Who runs the programs you want, in the languages you write."],
-  ["both", "Both", "Organizations first, then the open issues waiting in them."],
-  ["issues", "Find open issues", "Work you can claim this week, filtered to the same skills."],
+  ["orgs", "Find organizations", "Who runs the programs you want, in the languages you write. Optionally only those one program or one field names."],
+  ["issues", "Find open issues", "Work you can claim this week from the crawl snapshot, in the same skills, across the index or inside one organization."],
 ];
 const LEVELS: [string, string, string][] = [
   ["first", "First contributions", "Beginner-labelled work, nobody assigned, quiet repositories."],
@@ -156,6 +158,8 @@ function rankIssues(rows: LiveIssue[], words: string[], wantBeginner: boolean) {
     .sort((a, b) => b.s - a.s || b.i.stars - a.i.stars || +new Date(b.i.updated) - +new Date(a.i.updated));
 }
 
+const SEL = "w-full max-w-[360px] bg-cream border border-line rounded-[10px] px-3.5 py-2.5 text-[13px] outline-none focus:border-accent/60 transition-colors placeholder:text-dim";
+
 const Seg = ({ on, done, label, go }: { on: boolean; done: boolean; label: string; go: () => void }) => (
   <button type="button" onClick={go}
     className="group flex-1 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0 font-[inherit]">
@@ -189,10 +193,12 @@ export function CoPilotSection({ d }: { d: Dash }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [extra, setExtra] = useState<Skill[]>([]);
   const [custom, setCustom] = useState("");
-  const [goal, setGoal] = useState("both");
+  const [goal, setGoal] = useState("orgs");
   const [level, setLevel] = useState("some");
   const [hours, setHours] = useState(2);
   const [program, setProgram] = useState("all");
+  const [field, setField] = useState("all");
+  const [orgScope, setOrgScope] = useState("");
   const [beginner, setBeginner] = useState<boolean | null>(null);
   const [minStars, setMinStars] = useState(0);
   const [rosterRows, setRosterRows] = useState<RosterOrg[]>([]);
@@ -211,8 +217,8 @@ export function CoPilotSection({ d }: { d: Dash }) {
   }, [program]);
 
   const beginnerOn = beginner ?? level === "first";
-  const showOrgs = goal !== "issues";
-  const showIssues = goal !== "orgs";
+  const showOrgs = goal === "orgs";
+  const showIssues = goal === "issues";
 
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const addCustom = () => {
@@ -250,14 +256,15 @@ export function CoPilotSection({ d }: { d: Dash }) {
         const runs = programsOf(o.login);
         const runsIt = program !== "all" && runs.some((a) => a.id === program);
         const listed = rn.get(nnm(o.login)) ?? rn.get(nnm(o.name)) ?? 0;
-        const ok = program === "all" || runsIt || listed > 0;
+        const inField = field === "all" || sectorOfOrg(o.login) === field;
+        const ok = inField && (program === "all" || runsIt || listed > 0);
         const score = ok ? langs.length * 4 + Math.min(repos.length, 8) * 2 + (runsIt ? 4 : 0) + (listed ? 3 : 0) : -1;
         return { o, langs, repos: repos.length, runsIt, listed, score };
       })
       .filter((x) => x.score > 0 && x.o.stars >= minStars)
       .sort((a, b) => b.score - a.score || b.o.stars - a.o.stars)
       .slice(0, 6);
-  }, [skills, rosterRows, program, minStars]);
+  }, [skills, rosterRows, program, field, minStars]);
 
   /* the same program record, read as participants rather than profiles */
   const alsoIn = useMemo(() => {
@@ -278,10 +285,12 @@ export function CoPilotSection({ d }: { d: Dash }) {
 
     const langs = langsSel.join(",");
     const kw = langsSel.length ? "" : skills[0]?.tags[0] ?? "";
+    const scope = orgScope.trim().toLowerCase().replace(/^@+/, "").replace(/\/+$/, "");
     const ask = async (key: string) => {
       const p = new URLSearchParams();
       if (langs) p.set("lang", langs);
       if (key) p.set("q", key);
+      if (scope) p.set("org", scope);
       if (beginnerOn) p.set("beginner", "1");
       if (level === "first") p.set("unassigned", "1");
       p.set("sort", level === "deep" ? "stars" : "updated");
@@ -299,7 +308,7 @@ export function CoPilotSection({ d }: { d: Dash }) {
         if (!go) return;
         setLive({
           state: "ok", total: j.total ?? 0, rows: rankIssues(j.issues ?? [], words, beginnerOn).slice(0, 8),
-          generated: j.meta?.generated ?? "", widened, scope: [langsSel.join(" / "), kw].filter(Boolean).join(" · "),
+          generated: j.meta?.generated ?? "", widened, scope: [scope ? `${scope}/*` : "", langsSel.join(" / "), kw].filter(Boolean).join(" · "),
         });
       } catch {
         if (go) setLive({ ...NO_LIVE, state: "err" });
@@ -308,16 +317,32 @@ export function CoPilotSection({ d }: { d: Dash }) {
     return () => { go = false; ctrl.abort(); };
     /* the wizard only asks once per page of results, on purpose: 60
        searches a minute is the ceiling this endpoint gives one visitor */
-  }, [step, showIssues, langsSel, kwKey(skills), beginnerOn, level, words]);
+  }, [step, showIssues, langsSel, kwKey(skills), beginnerOn, level, words, orgScope]);
 
-  const finderHref = `/issues${langsSel.length ? `?lang=${encodeURIComponent(langsSel.join(","))}` : ""}${beginnerOn ? `${langsSel.length ? "&" : "?"}beginner=1` : ""}`;
+  const finderHref = useMemo(() => {
+    const p = new URLSearchParams();
+    if (langsSel.length) p.set("lang", langsSel.join(","));
+    if (orgScope.trim()) p.set("org", orgScope.trim().toLowerCase().replace(/^@+/, ""));
+    if (beginnerOn) p.set("beginner", "1");
+    const s = p.toString();
+    return `/issues${s ? `?${s}` : ""}`;
+  }, [langsSel, orgScope, beginnerOn]);
 
-  const done = skills.length > 0 && repoHits.length + orgHits.length > 0;
+  /* the same shortlist, on the page where every organization lives */
+  const directoryHref = useMemo(() => {
+    const p = new URLSearchParams();
+    if (field !== "all") p.set("sector", field);
+    if (program !== "all") p.set("prog", program);
+    const s = p.toString();
+    return `/organizations${s ? `?${s}` : ""}`;
+  }, [field, program]);
+
+  const done = skills.length > 0 && (showIssues ? live.rows.length + repoHits.length > 0 : orgHits.length > 0);
   const canNext = step !== 0 || skills.length > 0;
 
   return (
     <Card>
-      <DashHead title="Co-pilot" sub="Four steps: what you write, what you want, what fits, and the work that comes out of it. Every answer names the input that produced it." />
+      <DashHead title="Co-pilot" sub="Four steps: what you write, whether you want organizations or issues, what fits, and the answer. One question per run, and every card names the input that produced it." />
 
       <div className="flex gap-2.5 mt-6">
         {["Skills", "Goal", "Fit", "Results"].map((l, i) => (
@@ -377,7 +402,7 @@ export function CoPilotSection({ d }: { d: Dash }) {
         <div className="mt-6 grid gap-6">
           <div>
             <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">What should the co-pilot bring back?</b>
-            <div className="grid grid-cols-3 gap-3 max-[720px]:grid-cols-1">
+            <div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
               {GOALS.map(([v, t, n]) => <Choice key={v} on={goal === v} title={t} note={n} onClick={() => setGoal(v)} />)}
             </div>
           </div>
@@ -393,62 +418,108 @@ export function CoPilotSection({ d }: { d: Dash }) {
       {/* ── 3 fit ── */}
       {step === 2 && (
         <div className="mt-6 grid gap-6">
-          <div>
-            <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Restrict to one program</b>
-            <div className="no-scrollbar flex gap-1.5 flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1" role="group" aria-label="Program filter">
-              <button type="button" onClick={() => setProgram("all")} aria-pressed={program === "all"}
-                className={`shrink-0 font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${program === "all" ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
-                Any program
-              </button>
-              {PROGRAMS.map((p) => (
-                <button key={p.id} type="button" onClick={() => setProgram(p.id)} aria-pressed={program === p.id}
-                  className={`shrink-0 font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${program === p.id ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
-                  {p.name}
-                </button>
-              ))}
-            </div>
-            <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
-              {program === "all"
-                ? "No filter: organizations are ranked purely on the languages and repositories they match."
-                : rst.byId[program]
-                  ? `The record for ${PROGRAMS.find((p) => p.id === program)?.name} names ${fmt(rst.byId[program].orgs)} organizations and ${fmt(rst.byId[program].projects)} ${rosterUnit(program, rst.byId[program].source)}. Only profiles we hold live GitHub numbers for get a language reason.`
-                  : `${PROGRAMS.find((p) => p.id === program)?.name} publishes no participant list, so this filter can only use the organizations whose own repositories advertise it. The program page says so too.`}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-5 max-[720px]:grid-cols-1">
-            <div>
-              <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Repository size</b>
-              <div className="flex gap-1.5 flex-wrap">
-                {STARS.map(([v, l]) => (
-                  <button key={v} type="button" onClick={() => setMinStars(v)} aria-pressed={minStars === v}
-                    className={`font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${minStars === v ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
-                    {l}
+          {showOrgs && (
+            <>
+              <div>
+                <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Restrict to one program</b>
+                <div className="no-scrollbar flex gap-1.5 flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-1" role="group" aria-label="Program filter">
+                  <button type="button" onClick={() => setProgram("all")} aria-pressed={program === "all"}
+                    className={`shrink-0 font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${program === "all" ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
+                    Any program
                   </button>
-                ))}
+                  {PROGRAMS.map((p) => (
+                    <button key={p.id} type="button" onClick={() => setProgram(p.id)} aria-pressed={program === p.id}
+                      className={`shrink-0 font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${program === p.id ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
+                  {program === "all"
+                    ? "No filter: organizations are ranked purely on the languages and repositories they match."
+                    : rst.byId[program]
+                      ? `The record for ${PROGRAMS.find((p) => p.id === program)?.name} names ${fmt(rst.byId[program].orgs)} organizations and ${fmt(rst.byId[program].projects)} ${rosterUnit(program, rst.byId[program].source)}. Only profiles we hold live GitHub numbers for get a language reason.`
+                      : `${PROGRAMS.find((p) => p.id === program)?.name} publishes no participant list, so this filter can only use the organizations whose own repositories advertise it. The program page says so too.`}
+                </p>
               </div>
-            </div>
-            <div>
-              <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Time you have</b>
-              <div className="flex gap-1.5 flex-wrap">
-                {HOURS.map(([v, l]) => (
-                  <button key={v} type="button" onClick={() => setHours(v)} aria-pressed={hours === v}
-                    className={`font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${hours === v ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
-                    {l}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-5 max-[720px]:grid-cols-1">
+                <div>
+                  <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Field</b>
+                  <select value={field} onChange={(e) => setField(e.target.value)} aria-label="Field filter" className={SEL}>
+                    <option value="all">Any field ({ORGS.length} organizations)</option>
+                    {SECTOR_FACETS.map((f) => <option key={f.value} value={f.value}>{f.value} ({f.n})</option>)}
+                  </select>
+                  <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
+                    One field per run - the same buckets the organization directory filters on, so a shortlist card and a directory
+                    row mean the same work.
+                  </p>
+                </div>
+                <div>
+                  <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Organization size</b>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {STARS.map(([v, l]) => (
+                      <button key={v} type="button" onClick={() => setMinStars(v)} aria-pressed={minStars === v}
+                        className={`font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${minStars === v ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
+                    Stars are read from GitHub, so this is today&apos;s floor, not the archive&apos;s.
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
-          <label className="flex items-start gap-3 cursor-pointer select-none">
-            <input type="checkbox" checked={beginnerOn} onChange={(e) => setBeginner(e.target.checked)} className="mt-1 accent-[var(--color-accent)]" />
-            <span>
-              <b className="block text-[13.5px] font-semibold text-ink">Only beginner-labelled issues</b>
-              <span className="block text-cocoa text-[12px] leading-[1.55] mt-0.5">
-                GitHub puts a beginner label - good first issue, help wanted, easy, starter - on {fmt(CRAWL.beginnerLabelled)} of
-                the {fmt(CRAWL.issues)} indexed issues. This asks for those, and for nothing anyone already holds.
-              </span>
-            </span>
-          </label>
+            </>
+          )}
+
+          {showIssues && (
+            <>
+              <div>
+                <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Search inside one organization</b>
+                <input value={orgScope} onChange={(e) => setOrgScope(e.target.value)} placeholder="kubernetes, google, sentry &hellip;"
+                  aria-label="Limit issues to one GitHub organization" className={SEL} />
+                <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
+                  Optional. Left blank, the whole {fmt(CRAWL.issues)}-issue snapshot is in scope. Typed in, only repositories owned by
+                  that account answer - &ldquo;google&rdquo; also covers google-gemini and google-research.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-5 max-[720px]:grid-cols-1">
+                <div>
+                  <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Repository size</b>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {STARS.map(([v, l]) => (
+                      <button key={v} type="button" onClick={() => setMinStars(v)} aria-pressed={minStars === v}
+                        className={`font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${minStars === v ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Time you have</b>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {HOURS.map(([v, l]) => (
+                      <button key={v} type="button" onClick={() => setHours(v)} aria-pressed={hours === v}
+                        className={`font-mono text-[10.5px] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${hours === v ? "border-accent/50 bg-peach text-accent font-bold" : "border-line bg-cream text-cocoa hover:border-accent/40"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">Sets how many issues the shortlist keeps.</p>
+                </div>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input type="checkbox" checked={beginnerOn} onChange={(e) => setBeginner(e.target.checked)} className="mt-1 accent-[var(--color-accent)]" />
+                <span>
+                  <b className="block text-[13.5px] font-semibold text-ink">Only beginner-labelled issues</b>
+                  <span className="block text-cocoa text-[12px] leading-[1.55] mt-0.5">
+                    GitHub puts a beginner label - good first issue, help wanted, easy, starter - on {fmt(CRAWL.beginnerLabelled)} of
+                    the {fmt(CRAWL.issues)} indexed issues. This asks for those, and for nothing anyone already holds.
+                  </span>
+                </span>
+              </label>
+            </>
+          )}
         </div>
       )}
 
@@ -456,10 +527,20 @@ export function CoPilotSection({ d }: { d: Dash }) {
       {step === 3 && (
         <div className="mt-6 grid gap-6">
           <div className="flex items-center gap-5 flex-wrap rounded-[14px] border border-line bg-cream px-4 py-3.5">
-            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[.14em] text-accent">Your inputs</span>
-            <span className="flex flex-wrap gap-1">{skills.map((s) => <Word key={s.id}>{s.label}</Word>)}</span>
+            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[.14em] text-accent">
+              {showIssues ? "Looking for issues" : "Looking for organizations"}
+            </span>
+            <span className="flex flex-wrap gap-1">
+              {skills.map((s) => <Word key={s.id}>{s.label}</Word>)}
+              {showOrgs && program !== "all" && <Word>{PROGRAMS.find((p) => p.id === program)?.name}</Word>}
+              {showOrgs && field !== "all" && <Word>{field}</Word>}
+              {showIssues && orgScope.trim() && <Word>{orgScope.trim()}/*</Word>}
+              {showIssues && beginnerOn && <Word>beginner only</Word>}
+            </span>
             <span className="ml-auto font-mono text-[10.5px] text-dim">
-              {orgHits.length} orgs · {repoHits.length} repos{showIssues && live.state === "ok" ? ` · ${fmt(live.total)} issues` : ""}
+              {showOrgs
+                ? `${orgHits.length} organizations`
+                : `${live.state === "ok" ? fmt(live.total) : "…"} open issues · ${repoHits.length} catalog {repoHits.length === 1 ? "repo" : "repos"}`}
             </span>
           </div>
 
@@ -467,7 +548,12 @@ export function CoPilotSection({ d }: { d: Dash }) {
 
           {showOrgs && skills.length > 0 && (
             <div>
-              <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-3">Organizations that match</b>
+              <div className="flex items-baseline gap-3 flex-wrap mb-3">
+                <b className="font-mono text-[9.5px] uppercase tracking-[.14em] text-dim">
+                  Organizations that match{field !== "all" ? ` in ${field}` : ""}
+                </b>
+                <Link to={`/organizations${directoryHref}`} className={btn("ghost", "sm", "ml-auto")}>Open in organization directory</Link>
+              </div>
               {orgHits.length ? (
                 <div className="grid grid-cols-2 gap-3 max-[820px]:grid-cols-1">
                   {orgHits.map(({ o, langs, repos, runsIt, listed, score }) => (
@@ -502,8 +588,9 @@ export function CoPilotSection({ d }: { d: Dash }) {
                 </div>
               ) : (
                 <p className="text-[13px] text-dim">
-                  None of the organization profiles we hold live GitHub numbers for match that combination
-                  {program !== "all" ? " in this program" : ""}. Try one fewer skill, or the issue finder below.
+                  None of the {ORGS.length} organization profiles we hold live GitHub numbers for match that combination
+                  {program !== "all" ? " in this program" : ""}{field !== "all" ? ` in ${field}` : ""}. Take a filter off, or one skill
+                  out - the directory{"'"}s own {field === "all" ? "filters" : `${field} filter`} are one click away above.
                 </p>
               )}
               {alsoIn.length > 0 && (
@@ -568,9 +655,9 @@ export function CoPilotSection({ d }: { d: Dash }) {
             </div>
           )}
 
-          {skills.length > 0 && (
+          {showIssues && skills.length > 0 && (
             <div>
-              <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-3">Catalog repositories</b>
+              <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-3">Catalog repositories that ask for those skills</b>
               <div className="grid gap-2">
                 {repoHits.map(({ r, m }) => {
                   const [owner, name] = r.repo.split("/");

@@ -7,7 +7,8 @@ import { ORGS } from "../data/orgs";
 import { REAL_REPOS, REAL_STATS } from "../data/realOrgs";
 import { programsOf } from "../data/programAssoc";
 import { useStore } from "../lib/store";
-import { btn, Chip, LevelChip, OrgImg, Tag } from "../components/ui";
+import { btn, Chip, OrgImg, Tag } from "../components/ui";
+import { sectorOfOrg } from "../lib/orgClasses";
 import NotFound from "./NotFound";
 
 const W = "max-w-[1240px] mx-auto px-6";
@@ -107,6 +108,8 @@ export default function OrgProfile() {
     (ppDiff === "all" || p.s === ppDiff) &&
     (!ppQ.trim() || (p.t + " " + (p.b ?? "") + " " + (p.tt ?? []).join(" ")).toLowerCase().includes(ppQ.trim().toLowerCase())));
   const projTechTop = projTechs[0] ?? org.tags[0] ?? "-";
+  /* the same field label the directory filters on, from the same table */
+  const sector = sectorOfOrg(org.login) ?? "Other";
 
   return (
     <>
@@ -151,7 +154,13 @@ export default function OrgProfile() {
               <p className="text-cocoa mt-2 max-w-[700px] text-[14.5px] leading-[1.6]">{org.tagline}</p>
             </div>
             <div className="ml-auto flex gap-2.5 items-center">
-              <LevelChip level={org.level} />
+              {sector !== "Other" && (
+                <Link to={`/organizations?sector=${encodeURIComponent(sector)}`}
+                  title={`Every ${sector} organization in the directory`}
+                  className="font-mono text-[10px] font-semibold uppercase tracking-[.1em] px-2.5 py-1.5 rounded-lg border border-plum/30 bg-plum/6 text-plum hover:border-plum/60 transition-colors">
+                  {sector}
+                </Link>
+              )}
               <button onClick={async () => {
                 const share = { title: `${org.name} · cyrus.ai`, text: org.tagline, url: window.location.href };
                 try { if (navigator.share) await navigator.share(share); else { await navigator.clipboard.writeText(share.url); toast("Profile link copied"); } } catch { /* dismissed */ }

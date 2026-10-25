@@ -22,6 +22,11 @@ const InIcon = () => (
     <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.06 3.77-2.06 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.5c0-1.31-.02-3-1.83-3-1.83 0-2.11 1.43-2.11 2.9V21h-4V9Z" />
   </svg>
 );
+const XIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.96 6.82H1.6l7.73-8.84L1.25 2.25H8.1l4.71 6.23 5.43-6.23Zm-1.16 17.6h1.83L7.08 4.13H5.12l11.96 15.72Z" />
+  </svg>
+);
 
 export default function Footer() {
   return (
@@ -43,6 +48,10 @@ export default function Footer() {
               <a className="w-[32px] h-[32px] grid place-items-center rounded-[10px] border border-bean bg-bean/60 text-steam transition-colors duration-200 hover:text-foam hover:border-roast"
                 href="https://www.linkedin.com/in/iadityaoffl" target="_blank" rel="noopener" aria-label="cyrus.ai on LinkedIn">
                 <InIcon />
+              </a>
+              <a className="w-[32px] h-[32px] grid place-items-center rounded-[10px] border border-bean bg-bean/60 text-steam transition-colors duration-200 hover:text-foam hover:border-roast"
+                href="https://x.com/iaditya_offical" target="_blank" rel="noopener" aria-label="Aditya Duggirala on X">
+                <XIcon />
               </a>
             </div>
           </div>

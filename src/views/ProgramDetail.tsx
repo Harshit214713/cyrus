@@ -1,9 +1,12 @@
 "use client"
 /* ══ ProgramDetail.tsx — one open source program, deep ══════ */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@/lib/router";
 import { PROGRAMS } from "../data/orgs";
-import { TOPIC_ID_OF, useRoster, useRosterIndex, useLfDirectory, ARCHIVE_IDS, rosterUnit } from "../lib/programRoster";
+import { filterNameOf, loadProgramArchive } from "../lib/programProjects";
+import type { ArchiveEntry, ArchiveRow } from "../lib/programProjects";
+import { TOPIC_ID_OF, useRoster, ARCHIVE_IDS } from "../lib/programRoster";
+import { publishesAreas, useProgramOrgs } from "../lib/contriboOrgs";
 import { useMentors, MENTOR_IDS } from "../lib/mentorIndex";
 import { PROGRAM_META, PROGRAM_REPOS } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
@@ -81,243 +84,87 @@ const MetaRow = ({ k, v }: { k: string; v: string }) => (
   </div>
 );
 
-const PAGE = 60;
-
-const EVIDENCE_BADGE: Record<string, string> = {
-  archive: "from the project archive", api: "from the program's own open API",
-  listing: "from the published participant list", topics: "from GitHub topics on their repositories",
-};
-
-/* ── every organization that took part, from the real record ── */
-function RosterSection({ id, topicId, name }: { id: string; topicId?: string; name: string }) {
+/* ── the organization directory: one compact band, the list lives on its own page ──
+   This used to unroll every row of a program's record inline, which pushed the
+   timeline, the mentors and the projects off the screen. The band keeps the
+   invitation and points to /programs/<id>/organizations, where the same rows
+   are cards with logos, sectors, technologies and filters. No counts here:
+   the explorer is the place that shows them, and a number on this page would
+   only be a worse version of the list behind the button.                  ═ */
+function OrgDirectoryBand({ id, topicId, name }: { id: string; topicId?: string; name: string }) {
   const r = useRoster(id, topicId);
-  const [q, setQ] = useState("");
-  const [shown, setShown] = useState(PAGE);
+  const merged = useProgramOrgs(id);
 
-  const hits = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return r.orgs;
-    return r.orgs.filter((o) => o.name.toLowerCase().includes(needle) || o.category.toLowerCase().includes(needle));
-  }, [r.orgs, q]);
-
-  if (!r.ready) {
+  if (!r.ready || !merged.ready) {
     return (
       <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
         <h2 className="panel-h text-[17px]">Organizations</h2>
-        <p className="text-cocoa text-[13px] mt-2">Loading the participation record...</p>
+        <p className="text-cocoa text-[13px] mt-2">Reading the participation record...</p>
       </section>
     );
   }
 
-  if (!r.orgs.length) {
+  if (!merged.rows.length) {
     return (
       <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
         <h2 className="panel-h text-[17px] mb-2">Organizations in {name}</h2>
         <p className="text-cocoa text-[13px] leading-[1.65]">
-          {name} does not publish a list of the projects or organizations that took part, so there is
-          nothing here we could show you honestly. Its own program page is the only source for that -
-          the button above opens it.
+          {name} publishes the people it accepted and the project each of them worked on, not a list of
+          participating organizations - so there is nothing here we could show you honestly. The
+          organizer's own page, linked above, is the only source for that.
         </p>
       </section>
     );
   }
 
-  const unit = rosterUnit(id, r.source);
-  const ment = r.meta?.mentors;
+  const areas = publishesAreas(id);
+  const unit = areas ? "project area" : "organization";
+
   return (
-    <section>
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
-        <div>
-          <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
-            Every organization in <Word>{name}</Word>
-          </h2>
-          <p className="text-cocoa text-[12.5px] mt-1">
-            {r.orgs.length.toLocaleString()} organizations · {fmt(r.projects)} {unit}
-            {r.years.length > 1 ? <> · {r.years[0]}-{r.years[r.years.length - 1]}</> : null}
-            {ment?.onProjects ? <><br />{fmt(ment.onProjects)} mentor names on those records</> : null}
-            {ment?.listed ? <><br />{fmt(ment.listed)} mentors named by {name}{ment.capped ? " (their directory caps there)" : ""}</> : null}
+    <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+      <div className="flex items-start justify-between gap-5 flex-wrap">
+        <div className="min-w-0 max-w-[620px]">
+          <h2 className="font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2">Organization directory</h2>
+          <h3 className="font-display font-extrabold text-[21px] tracking-[-.02em] leading-[1.15]">
+            Explore the {areas ? "areas" : "organizations"} of <Word>{name}</Word>
+          </h3>
+          <p className="text-cocoa text-[13px] leading-[1.65] mt-2">
+            Every {unit} this program's own record names, as a card with its logo, its field and the
+            projects it took. Filter by year, technology and field on that page - and where a row
+            carries no logo or no blurb, it shows nothing rather than inventing one.
           </p>
         </div>
-        <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
-          {EVIDENCE_BADGE[r.source] ?? "from the record"}{r.generated ? ` · ${r.generated}` : ""}
-        </span>
+        <div className="flex flex-col gap-2.5 shrink-0 w-[212px] max-[560px]:w-full">
+          <Link to={`/programs/${id}/organizations`} className={btn("primary", "md", "w-full")}>
+            {areas ? "Explore the areas" : "Explore organizations"}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+              <path d="M5 12h13m-5-6 6 6-6 6" />
+            </svg>
+          </Link>
+          <Link to="/dashboard/matcher" className={btn("outline", "md", "w-full")}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+              <path d="M12 3.5 13.9 8l4.6 1.6-4.6 1.6L12 15.7 10.1 11.2 5.5 9.6 10.1 8z" />
+              <path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+            </svg>
+            AI project matcher
+          </Link>
+        </div>
       </div>
 
       {r.meta?.note && (
-        <p className="text-cocoa text-[11.5px] leading-[1.6] mb-4 max-w-[860px]">
+        <p className="text-dim text-[11px] leading-[1.6] mt-4 max-w-[860px]">
           {r.meta.note} <span className="text-dim">Source: {r.meta.source}.</span>
         </p>
       )}
-
-      {r.overlaps.length > 0 && (
-        <div className="bg-cream border border-line rounded-[16px] p-4 mb-4">
-          <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2.5">
-            Organizations this list shares with the other programs here
-          </b>
-          <div className="flex flex-wrap gap-1.5">
-            {r.overlaps.map((x) => (
-              <span key={x.other} title={x.examples.join(", ")}
-                className="flex items-center gap-1.5 font-mono text-[10.5px] rounded-full border border-line bg-card px-2.5 py-[6px] text-cocoa">
-                {x.label}
-                <b className="text-accent font-bold">{fmt(x.mine)}</b>
-                <span className="text-dim">{x.pctMine}% of this list</span>
-              </span>
-            ))}
-          </div>
-          <p className="text-dim text-[11px] leading-[1.6] mt-2.5">
-            Matched on name, on the GitHub organization behind a project URL, and on the loose form of a
-            name with "Foundation", "Inc" and similar suffixes stripped - so it is a floor, not a ceiling.
-            Hover any chip for the names we actually matched.
-          </p>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2.5 mb-4">
-        <input value={q} onChange={(e) => { setQ(e.target.value); setShown(PAGE); }} placeholder="Search these organizations"
-          aria-label="Search organizations"
-          className="flex-1 min-w-0 max-w-[340px] bg-card border border-line rounded-xl px-3.5 py-2.5 text-[13.5px] outline-none transition-all focus:border-accent" />
-        <span className="font-mono text-[10.5px] text-dim">{fmt(hits.length)} shown</span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 max-[1080px]:grid-cols-2 max-[620px]:grid-cols-1">
-        {hits.slice(0, shown).map((o) => {
-          const inner = (
-            <>
-              <span className="flex items-center gap-2.5 min-w-0">
-                <OrgImg src={avatarOf(o.login ?? o.name, 64)} name={o.login ?? o.name}
-                  className="w-[26px] h-[26px] rounded-[8px] object-cover bg-clay shrink-0" />
-                <b className="text-[13px] font-semibold truncate">{o.name}</b>
-              </span>
-              <span className="flex items-center gap-2 mt-2 font-mono text-[9.5px] text-dim">
-                <b className="text-accent font-bold">{fmt(o.n)}</b>
-                {r.source === "topics" ? "repos with the topic"
-                  : o.n === 0 ? "listed as a participant"
-                  : o.years.length > 1 ? `${unit} · ${o.years.length} years` : unit}
-                {o.category && <span className="truncate">· {o.category}</span>}
-              </span>
-            </>
-          );
-          const cls = "bg-card border border-line rounded-[16px] p-4 block shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40";
-          return o.to.startsWith("/")
-            ? <Link key={o.name} to={o.to} className={cls}>{inner}</Link>
-            : <a key={o.name} href={o.href} target="_blank" rel="noopener" className={cls}>{inner}</a>;
-        })}
-      </div>
-
-      {hits.length > shown && (
-        <button type="button" onClick={() => setShown((s) => s + PAGE * 2)}
-          className={btn("outline", "md", "mt-5")}>
-          Show more · {fmt(hits.length - shown)} left
-        </button>
-      )}
     </section>
   );
 }
 
-/* ── the Linux Foundation member directory, next to the LFX mentorship roster ──
-   The user asked for "around 800 LFX organizations". That number is real, but it
-   is not the mentorship roster: it is member organizations of the LF family, and
-   CNCF's own 2025 annual report says "almost 800 member organizations". The
-   gateway gives us 4,495 distinct companies across 167 foundations, 699 of them
-   CNCF. Both figures belong on this page, labelled for what they are. */
-function LfBand() {
-  const lf = useLfDirectory();
-  const idx = useRosterIndex();
-  if (!lf) return null;
-  const lfxProjects = idx.byId.lfx?.projects ?? 1303;
-  const founds = Object.entries(lf.foundations).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  return (
-    <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-1">
-        <h2 className="panel-h text-[17px]">The <Word>800</Word> figure, and where it comes from</h2>
-        <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
-          LF open gateway · {lf.generated}
-        </span>
-      </div>
-      <p className="text-cocoa text-[12.5px] leading-[1.65] mb-5 max-w-[900px]">
-        {lf.cncfNote} LFX Mentorship itself is much narrower: {fmt(lfxProjects)} mentored projects hosted by 47
-        Linux Foundation projects, which is the list above. The gateway behind these numbers carries{" "}
-        {fmt(lf.projectTotal)} hosted projects and {fmt(lf.memberOrgs)} member companies - membership is the wider
-        circle, the companies that fund and govern the foundations rather than the hosts that ran a mentorship.
-      </p>
-      <div className="grid grid-cols-4 gap-x-5 gap-y-4 max-[820px]:grid-cols-2 mb-5">
-        {[
-          [fmt(lf.memberOrgs), "distinct member organizations"],
-          [String(Object.keys(lf.foundations).length), "foundations in the gateway"],
-          [fmt(lf.multiFoundation), "in more than one foundation"],
-          [founds[0] ? fmt(founds[0][1]) : "-", `${founds[0]?.[0] ?? ""} members`],
-        ].map(([v, k]) => (
-          <div key={k}>
-            <b className="font-display font-extrabold text-[25px] tracking-[-.02em] leading-none block">{v}</b>
-            <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim">{k}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {founds.map(([slug, n]) => (
-          <span key={slug} className="font-mono text-[10.5px] rounded-full border border-line bg-cream px-2.5 py-[6px] text-cocoa">
-            {slug}<b className="text-accent font-bold ml-1">{fmt(n)}</b>
-          </span>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-2 max-[760px]:grid-cols-1">
-        {lf.top.slice(0, 10).map((o) => (
-          <a key={o.name} href={`https://${o.website}`} target="_blank" rel="noopener"
-            className="flex items-center gap-2.5 bg-cream border border-line rounded-[12px] px-3 py-2 hover:border-accent/40 transition-colors">
-            <OrgImg src={avatarOf(o.name, 64)} name={o.name} className="w-[22px] h-[22px] rounded-[7px] object-cover bg-clay shrink-0" />
-            <b className="text-[12.5px] font-semibold truncate">{o.name}</b>
-            <span className="ml-auto font-mono text-[10px] text-dim shrink-0">{o.foundations} foundations</span>
-          </a>
-        ))}
-      </div>
-      <p className="text-dim text-[11px] leading-[1.6] mt-3">{lf.note}</p>
-    </section>
-  );
-}
-
-
-
-/* ── the organizer's own headline totals, quoted rather than computed ──
-   Our archive covers the years we crawled. The program has been running far
-   longer, and its own front page publishes the all-time figures, so they are
-   shown next to ours with the source named - never blended into them. */
-const PUBLISHED: Record<string, { source: string; stats: [string, string][] }> = {
-  gsoc: {
-    source: "summerofcode.withgoogle.com",
-    stats: [
-      ["1000+", "open source organizations"],
-      ["21K+", "mentors"],
-      ["22K+", "new contributors"],
-      ["48M+", "lines of code"],
-      ["123", "countries"],
-      ["21", "years running"],
-    ],
-  },
-};
-
-function PublishedBand({ id }: { id: string }) {
-  const p = PUBLISHED[id];
-  if (!p) return null;
-  return (
-    <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-      <h2 className="panel-h text-[17px] mb-1">The organizer's <Word>own</Word> totals</h2>
-      <p className="text-cocoa text-[12.5px] mb-5">
-        Every year the program has run, as published on <a href={`https://${p.source}`} target="_blank" rel="noopener" className="text-accent underline underline-offset-2">{p.source}</a> -
-        quoted here, not counted by us. The numbers further down this page are what our archive holds.
-      </p>
-      <div className="grid grid-cols-3 gap-x-5 gap-y-5 max-[640px]:grid-cols-2">
-        {p.stats.map(([v, k]) => (
-          <div key={k}>
-            <b className="font-display font-extrabold text-[25px] tracking-[-.02em] leading-none block">{v}</b>
-            <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim">{k}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ── the mentors named on the program's own record ── */
+/* ── the mentors named on the program's own record ──
+   The list is the content here; the counts are not. A page that opened with
+   "N distinct names across M projects" asked the reader to care about an
+   archive statistic before showing a single mentor, so the headline is gone
+   and the cards carry their own project counts instead. */
 function MentorSection({ id }: { id: string }) {
   const m = useMentors(id);
   const [shown, setShown] = useState(12);
@@ -337,7 +184,6 @@ function MentorSection({ id }: { id: string }) {
   }
 
   const t = m.program;
-  const dir = t.directory;
   return (
     <section>
       <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
@@ -345,18 +191,11 @@ function MentorSection({ id }: { id: string }) {
           <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
             Mentors named in the <Word>record</Word>
           </h2>
-          <p className="text-cocoa text-[12.5px] mt-1">
-            {fmt(t.mentors)} distinct names
-            {t.projectsWithMentors ? <> across {fmt(t.projectsWithMentors)} archived {t.label} projects</> : <>{t.note ? "" : ""}</>}
-            {t.years?.length ? <> · {t.years[0]}-{t.years[t.years.length - 1]}</> : null}
-            {t.participants ? <> · {fmt(t.participants)} contributors on the organizer's leaderboard</> : null}
+          <p className="text-cocoa text-[12.5px] mt-1 max-w-[620px] leading-[1.6]">
+            The people {t.label}'s own project rows credit with the mentoring, with the number of
+            archived projects each one appears on. Where the record gives a GitHub account, that is
+            shown; where it does not, no account is guessed.
           </p>
-          {dir && (
-            <p className="text-cocoa text-[12.5px] mt-1">
-              The platform itself holds {fmt(dir.registered)} mentor sign-ups, {fmt(dir.nameable)} with a
-              display name and {fmt(dir.withProjects)} listing at least one project or graduate.
-            </p>
-          )}
         </div>
         <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
           from the project records · {m.generated}
@@ -386,7 +225,7 @@ function MentorSection({ id }: { id: string }) {
 
       {t.top.length > shown && (
         <button type="button" onClick={() => setShown((s) => s + 24)} className={btn("outline", "md", "mt-5")}>
-          Show more mentors · {fmt(t.top.length - shown)} left
+          Show more mentors
         </button>
       )}
       {(t.note || m.note) && (
@@ -399,6 +238,104 @@ function MentorSection({ id }: { id: string }) {
   );
 }
 
+
+/* ── the program's own projects ─────────────────────────────────────
+   Read from /data/program-projects/<id>.json, the shard
+   scripts/build-program-projects.mjs writes from the program's published
+   record. The cards and the source line are the content; the counts live on
+   the listing page this section links to. A program with no archive says so
+   instead of showing a padded grid. */
+function ProgramProjects({ id }: { id: string }) {
+  const [arc, setArc] = useState<{ entry: ArchiveEntry; rows: ArchiveRow[] } | null>(null);
+  const [done, setDone] = useState(false);
+  const [shown, setShown] = useState(9);
+
+  useEffect(() => {
+    let go = true;
+    setDone(false);
+    loadProgramArchive(id)
+      .then((r) => { if (go) { setArc(r); setDone(true); } })
+      .catch(() => { if (go) setDone(true); });
+    return () => { go = false; };
+  }, [id]);
+
+  if (!done) {
+    return (
+      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+        <h2 className="panel-h text-[17px]">Projects</h2>
+        <p className="text-cocoa text-[13px] mt-2">Opening this program's own record…</p>
+      </section>
+    );
+  }
+
+  if (!arc) {
+    return (
+      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+        <h2 className="panel-h text-[17px] mb-2">Projects in this <Word>program</Word></h2>
+        <p className="text-cocoa text-[13px] leading-[1.65]">
+          This program publishes the people it accepted, not a per-project table we can read from
+          here - so this page lists none rather than inventing rows. The organization directory
+          below carries the record we do hold, and the organizer's own site, linked above, is the
+          source for project-level detail.
+        </p>
+      </section>
+    );
+  }
+
+  const { entry, rows } = arc;
+  return (
+    <section>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
+        <div className="min-w-0">
+          <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
+            Projects in the <Word>record</Word>
+          </h2>
+          <p className="text-cocoa text-[12.5px] mt-1.5 max-w-[680px] leading-[1.6]">
+            Every project this program credits on its own pages, one card each, straight through to
+            the organizer's record for that project.
+            {entry.years.length ? <> · {entry.years[0]}-{entry.years[entry.years.length - 1]}</> : null}
+            <br />
+            <span className="text-dim">Source: {entry.source}</span>
+          </p>
+        </div>
+        <Link to={`/projects?prog=${encodeURIComponent(filterNameOf(id, entry.label))}`} className={btn("outline", "sm")}>
+          Open the full listing
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 max-[980px]:grid-cols-2 max-[620px]:grid-cols-1">
+        {rows.slice(0, shown).map((r) => (
+          <a key={r.key} href={r.url} target="_blank" rel="noopener"
+            className="group bg-card border border-line rounded-[18px] p-[16px] flex flex-col shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift hover:border-accent/45">
+            <h3 className="card-title text-[14.5px] leading-snug line-clamp-2">{r.title}</h3>
+            <p className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim mt-1.5 truncate">
+              {r.org}{r.year ? ` • ${r.year}` : ""}
+            </p>
+            <p className="text-cocoa text-[12px] leading-[1.55] mt-2.5 line-clamp-3">{r.body || "No description in the record."}</p>
+            <div className="flex gap-1.5 flex-wrap mt-3">
+              {r.lang && <Chip tone="lang">{r.lang}</Chip>}
+              {r.season && <Chip tone="blue">{r.season}</Chip>}
+              {r.tags.slice(0, 2).map((t) => <Chip key={t} tone="cat">{t}</Chip>)}
+              {r.stars > 0 && <Chip tone="stars">★ {fmt(r.stars)}</Chip>}
+            </div>
+            <span className="mt-auto pt-3.5 font-mono text-[10px] uppercase tracking-[.1em] text-accent flex items-center gap-1.5">
+              {r.mentor ? `Mentor: ${r.mentor.split(",")[0]}` : "Open record"}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M7 17 17 7M9 7h8v8" /></svg>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-4 mt-4 flex-wrap">
+        {rows.length > shown && (
+          <button type="button" onClick={() => setShown((s) => s + 9)} className={btn("outline", "sm")}>
+            Show more projects
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default function ProgramDetail() {
   const { id } = useParams();
@@ -419,8 +356,11 @@ export default function ProgramDetail() {
     <>
       {/* ── cover banner ── */}
       <header className="relative overflow-hidden bg-coffee">
-        {p.img && <img src={p.img} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />}
-        <span aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#0f1012]/55 via-[#0f1012]/75 to-[#0f1012]/95" />
+        {p.img && <img src={p.img} alt="" className="absolute inset-0 w-full h-full object-cover opacity-75" />}
+        {/* the cover has to stay readable under white text, but it was sitting at
+            30% under a 95% black wash - i.e. invisible. Reveal the photo on the
+            top-right and keep the shade where the words are. */}
+        <span aria-hidden className="absolute inset-0 bg-gradient-to-tr from-[#0f1012]/92 via-[#0f1012]/62 to-[#0f1012]/25" />
         <div className={`${W} py-14 relative z-[1]`}>
           <p className="font-mono text-[10.5px] tracking-[.14em] uppercase text-foam/55 mb-5">
             <Link to="/" className="hover:text-white">Home</Link> / <Link to="/programs" className="hover:text-white">Programs</Link> / <span className="text-foam/80">{p.name}</span>
@@ -535,13 +475,11 @@ export default function ProgramDetail() {
             </section>
           )}
 
-          <PublishedBand id={p.id} />
+          <ProgramProjects id={p.id} />
 
           {(ARCHIVE_IDS as readonly string[]).includes(p.id) || (MENTOR_IDS as readonly string[]).includes(p.id) ? <MentorSection id={p.id} /> : null}
 
-          <RosterSection id={p.id} topicId={TOPIC_ID_OF[p.id]} name={p.name} />
-
-          {p.id === "lfx" && <LfBand />}
+          <OrgDirectoryBand id={p.id} topicId={TOPIC_ID_OF[p.id]} name={p.name} />
 
           {shelf.length > 0 && (            <section>
               <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
@@ -576,7 +514,6 @@ export default function ProgramDetail() {
             <MetaRow k="Tier" v={d.tier} />
             <MetaRow k="Difficulty" v={d.difficulty} />
             <MetaRow k="Eligibility" v={d.eligibility} />
-            <MetaRow k="Scale" v={`${p.orgs} · ${p.slots}`} />
             <div className="grid gap-2.5 mt-4">
               {shelf.length > 0 && <Link to="/projects" className={btn("primary", "md", "w-full")}>Browse {PROGRAM_META[shelfName as ProgramName].label} projects</Link>}
               <Link to="/organizations" className={btn("outline", "md", "w-full")}>View organizations</Link>

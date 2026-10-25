@@ -35,7 +35,8 @@ describe("home card", () => {
     const said = card.rows.map((r) => r.v).join(" | ");
     expect(said).toContain(`${fmt(STATS.issues)} across`);
     expect(said).toContain(`${PROGRAMS.length} tracked`);
-    expect(said).toContain(`${fmt(STATS.archive)} mentored program projects`);
+    expect(said).toContain(`${fmt(STATS.archive)} program projects`);
+    expect(said).toContain(`${STATS.archivePrograms} archives`);
     expect(said).toContain(`${ORGS.length} profiles`);
     expect(card.rows).toHaveLength(4);
   });

@@ -25,3 +25,6 @@ scripts/org-login-cache.json
 
 # local run logs from the roster/resolve scripts
 scratch/logs/
+
+# local fetch cache written by the roster/globe scripts - regenerable
+scripts/.cache/

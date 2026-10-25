@@ -9,15 +9,18 @@ import { Logo, Brand, Avatar, btn } from "./ui";
 import { TONES } from "./plat";
 import { useStore } from "../lib/store";
 
+/* Header order is the site's own priority: what a contributor comes to look at
+   first (the programs that fund them), then who runs them, then the work.
+   "Home" is not a link - the wordmark at the left of the strip already is one,
+   and spending a slot on it pushed the real destinations into an overflow. */
 const LINKS = [
-  { to: "/", label: "Home" },
-  { to: "/organizations", label: "Organizations" },
-  { to: "/issues", label: "Issues" },
-  { to: "/leaderboard", label: "Leaderboard" },
-  { to: "/projects", label: "Projects" },
   { to: "/programs", label: "Programs" },
+  { to: "/organizations", label: "Organizations" },
+  { to: "/projects", label: "Projects" },
+  { to: "/issues", label: "Issues" },
   { to: "/skills", label: "Skills" },
   { to: "/sponsors", label: "Sponsors" },
+  { to: "/leaderboard", label: "Leaderboard" },
   { to: "/about", label: "About us" },
 ];
 
@@ -71,16 +74,13 @@ export default function Nav() {
             <Link to="/" className="flex items-center gap-2.5 shrink-0 max-[700px]:gap-2"><Logo size={34} /><Brand /></Link>
             {/* desktop strip: single tightened row, lg+ only */}
             <div className="hidden lg:flex items-center gap-1 min-w-0">
-              {LINKS.slice(0, -1).map((l) => (
-                <NavLink key={l.to} to={l.to} end={l.to === "/"}
+              {LINKS.map((l) => (
+                <NavLink key={l.to} to={l.to}
                   className={`${PILL} ${pillCls(active(l.to))}`}>
                   {l.label}
                 </NavLink>
               ))}
               <PlatformMenu />
-              <NavLink to="/about" className={`${PILL} ${pillCls(active("/about"))}`}>
-                About us
-              </NavLink>
             </div>
 
             <div className="ml-auto flex items-center gap-3.5 max-[700px]:gap-2">

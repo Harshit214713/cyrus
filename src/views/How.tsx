@@ -10,6 +10,7 @@ import { avatarOf, fmt, byStars } from "../lib/util";
 import { W, Pill, StepHead, Behind, YourAction, MockPanel, MockRow, GridBG, PlatCTA, Rule } from "../components/plat";
 import CompanyBand from "../components/CompanyBand";
 import { CRAWL } from "../data/crawlStats";
+import { STATS } from "../lib/siteStats";
 import { REPOS } from "../data/repos";
 import { ORGS, PROGRAMS } from "../data/orgs";
 import { ISSUE_STAGES, STAGE_LABEL, STAGE_NOTE } from "../lib/dash/shared";
@@ -80,7 +81,7 @@ export default function How() {
 
         {/* STEP 01 */}
         <Step step="01" label="Find work that is open" d={D.gauge} tone="rust"
-          sub={`One place to search public GitHub data: ${fmt(CRAWL.issues)} open issues from ${fmt(CRAWL.reposWithIssues)} repositories, ${fmt(CRAWL.catalogRepos)} catalogued projects in ${CRAWL.languages} languages, and ${fmt(ORGS.length)} organizations with a profile of their own. Filter it, then open the thread on GitHub before you start work.`}
+          sub={`One place to search public GitHub data: ${fmt(CRAWL.issues)} open issues from ${fmt(CRAWL.reposWithIssues)} repositories, ${fmt(STATS.archive)} archived program projects in the ${STATS.archivePrograms} program records, and ${fmt(ORGS.length)} organizations with a profile of their own. Filter it, then open the thread on GitHub before you start work.`}
           h2="Start from what is actually open."
           behind={[
             `Issues crawled from ${fmt(CRAWL.reposWithIssues)} active repositories on ${CRAWL.crawledAt}`,

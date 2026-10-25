@@ -86,7 +86,14 @@ function FundCard({ f }: { f: Funded }) {
       </div>
       <div className="flex items-center justify-between gap-2 pt-1 border-t border-line mt-auto">
         <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim">via {platOf(keys[0])?.short ?? "funding.yml"}</span>
-        <a href={go.href} target="_blank" rel="noopener" className={btn("primary", "sm")}>Sponsor ↗</a>
+        <a href={go.href} target="_blank" rel="noopener" className={btn("primary", "sm")}>
+          Sponsor
+          {/* the ↗ glyph sat on the text baseline and looked typed in; an SVG
+              on the same optical centre as the label reads as part of the
+              button, and it says "leaves the site" more clearly than ↗ does */}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M7 17 17 7M9 7h8v8" /></svg>
+        </a>
       </div>
     </article>
   );

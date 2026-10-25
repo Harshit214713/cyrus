@@ -229,6 +229,20 @@ export function overlapsFor(file: RosterIndexFile | null, id: string, labelOf: (
   return rows.sort((x, y) => y.mine - x.mine);
 }
 
+/** The overlap map only, without fetching a program's organization shard. */
+export function useOverlaps(id: string): OverlapRow[] {
+  const [rows, setRows] = useState<OverlapRow[]>([]);
+  useEffect(() => {
+    let go = true;
+    loadRosterIndex().then((file) => {
+      if (!go) return;
+      setRows(overlapsFor(file, id, (other) => file?.programs?.[other]?.label ?? other));
+    });
+    return () => { go = false; };
+  }, [id]);
+  return rows;
+}
+
 export type Roster = {
   ready: boolean;
   orgs: RosterOrg[];

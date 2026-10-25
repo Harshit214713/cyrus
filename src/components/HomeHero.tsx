@@ -23,6 +23,7 @@ import { CRAWL } from "../data/crawlStats";
 import { ISSUE_SIGNALS } from "../data/issueSignals";
 import { LEADERS } from "../data/leaderboard";
 import { avatarOf, fmt, byStars } from "../lib/util";
+import { STATS } from "../lib/siteStats";
 import { DP } from "../lib/dash/shared";
 import { useStore } from "../lib/store";
 import { Word, btn, OrgImg, Logo } from "./ui";
@@ -62,10 +63,10 @@ function matches(skills: string[]) {
 type PanelId = "issues" | "orgs" | "board" | "programs" | "projects" | "copilot";
 const RAIL: { id: PanelId; icon: string; text: string; count?: string }[] = [
   { id: "issues", icon: DP.search, text: "Issue finder", count: fmt(CRAWL.issues) },
-  { id: "orgs", icon: DP.building, text: "Organizations", count: fmt(CRAWL.orgs) },
+  { id: "orgs", icon: DP.building, text: "Organizations", count: fmt(STATS.orgs) },
   { id: "board", icon: DP.flag, text: "Leaderboard", count: "100" },
   { id: "programs", icon: DP.calendar, text: "Programs", count: String(PROGRAMS.length) },
-  { id: "projects", icon: DP.layers, text: "Projects", count: fmt(CRAWL.catalogRepos) },
+  { id: "projects", icon: DP.layers, text: "Projects", count: fmt(STATS.catalog) },
   { id: "copilot", icon: DP.spark, text: "Co-pilot" },
 ];
 
@@ -149,7 +150,7 @@ function OrgsPanel() {
   return (
     <>
       <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Organizations</h3>
-      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(CRAWL.orgs)} profiled from their public GitHub record.</p>
+      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.orgs)} profiled from their public GitHub record, {fmt(STATS.orgRoster)} named by a program archive.</p>
       <div className="grid grid-cols-2 gap-2 mt-3">
         {TOP_ORGS.map((o, k) => (
           <Row key={o.login} className={k > 1 ? "hidden md:block" : ""}>
@@ -228,7 +229,7 @@ function ProjectsPanel() {
   return (
     <>
       <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Project catalog</h3>
-      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(CRAWL.catalogRepos)} repositories indexed by language, topic and stars.</p>
+      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.catalog)} repositories indexed by language, topic and stars.</p>
       <div className="grid gap-1.5 mt-3">
         {TOP_REPOS.map((r, k) => {
           const [owner, name] = r.repo.split("/");
@@ -357,7 +358,7 @@ function BoardPreview() {
             {/* right rail: the index, and the windows it is in */}
             <aside className="hidden xl:block w-[212px] shrink-0 border-l border-line bg-card px-3 py-3 overflow-hidden">
               <b className="block font-mono text-[8.5px] uppercase tracking-[.14em] text-dim mb-2">The index now</b>
-              {[[fmt(CRAWL.issues), "open issues"], [fmt(CRAWL.reposWithIssues), "repos with live issues"], [fmt(CRAWL.orgs), "organizations"], [fmt(CRAWL.beginnerLabelled), "beginner-labelled"]].map(([v, l]) => (
+              {[[fmt(STATS.issues), "open issues"], [fmt(STATS.issueRepos), "repos with live issues"], [fmt(STATS.orgs), "organizations"], [fmt(STATS.beginnerIssues), "beginner-labelled"], [fmt(STATS.archiveRows), "archived projects"]].map(([v, l]) => (
                 <div key={l} className="flex items-baseline justify-between gap-2 py-[6px] border-b border-liness last:border-0">
                   <span className="font-display font-bold text-[12px] text-accent">{v}</span>
                   <span className="text-[10px] text-cocoa text-right">{l}</span>
@@ -374,7 +375,7 @@ function BoardPreview() {
                 </div>
               ))}
               <p className="mt-4 pt-3 border-t border-liness font-mono text-[8.5px] uppercase tracking-[.1em] leading-[1.9] text-dim">
-                {fmt(CRAWL.catalogRepos)} repos indexed · {CRAWL.languages} languages · rebuilt {CRAWL.crawledAt}
+                {fmt(STATS.crawlRepos)} repos read in the crawl · {CRAWL.languages} languages · rebuilt {STATS.crawledAt}
               </p>
             </aside>
           </div>
@@ -413,13 +414,16 @@ export default function HomeHero() {
         </h1>
 
         <p className="reveal mx-auto mt-4 max-w-[560px] text-cocoa text-[15.5px] leading-[1.6] max-[700px]:mt-3 max-[700px]:text-[14px] max-[700px]:leading-[1.55]" style={{ animationDelay: ".34s" }}>
-          {fmt(CRAWL.issues)} real open issues, {PROGRAMS.length} funded programs, one contribution board.
+          {fmt(STATS.issues)} real open issues, {fmt(STATS.archive)} archived program projects, {PROGRAMS.length} funded programs, one contribution board.
         </p>
 
         {/* ossium keeps its two actions on one row on phones, so the pair
             shrinks to fit instead of stacking */}
         <div className="reveal flex gap-3 justify-center flex-wrap mt-8 max-[700px]:gap-2.5 max-[700px]:mt-6" style={{ animationDelay: ".46s" }}>
-          <Link to="/issues" className={btn("dark", "lg", "max-[700px]:px-[18px] max-[700px]:py-[11px] max-[700px]:text-[13.5px] max-[700px]:gap-1.5")}>
+          {/* the dark variant exists site-wide and flips to green on hover; on
+              the hero's primary action that read as the button changing into a
+              different control, so it stays ink and moves instead */}
+          <Link to="/issues" className={btn("dark", "lg", "max-[700px]:px-[18px] max-[700px]:py-[11px] max-[700px]:text-[13.5px] max-[700px]:gap-1.5 hover:bg-ink! hover:text-paper! hover:border-ink! hover:-translate-y-px")}>
             Start searching
             <span className="grid place-items-center w-[22px] h-[22px] rounded-full bg-paper text-ink shrink-0 max-[700px]:w-[19px] max-[700px]:h-[19px]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
@@ -435,11 +439,11 @@ export default function HomeHero() {
                 className={`w-[30px] h-[30px] rounded-full object-cover bg-sand ring-2 ring-paper ${i ? "-ml-2.5" : ""}`} />
             ))}
             <span className="-ml-2.5 w-[30px] h-[30px] rounded-full ring-2 ring-paper bg-clay grid place-items-center font-mono text-[9.5px] font-bold text-cocoa">
-              +{CRAWL.orgs - PROOF.length}
+              +{STATS.orgs - PROOF.length}
             </span>
           </span>
           <span className="text-[12.5px] text-dim">
-            Indexed from <b className="text-cocoa font-semibold">{fmt(CRAWL.orgs)} organizations</b> on GitHub
+            Indexed from <b className="text-cocoa font-semibold">{fmt(STATS.orgs)} organizations</b> on GitHub
           </span>
         </div>
       </div>

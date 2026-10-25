@@ -6,6 +6,7 @@
 import { Link } from "@/lib/router";
 import { btn, Word } from "../components/ui";
 import { fmt } from "../lib/util";
+import { STATS } from "../lib/siteStats";
 import { REPOS } from "../data/repos";
 import { ORGS, PROGRAMS } from "../data/orgs";
 import { CRAWL } from "../data/crawlStats";
@@ -30,6 +31,7 @@ const VERIFIED: [string, string, string, number, string, string][] = [
   ["GSSoC'26", "gssoc.girlscript.org/api - projects, mentors and leaderboard", "423 projects in 420 repositories, 47,896 contributors on the board", 423, "leaf", "season board"],
   ["24 Pull Requests", "24pullrequests.com projects.json + organisations.json", "Organizations that took part, plus 306 curated wishlist repositories", 10080, "denim", "wishlist + orgs"],
   ["MLH Fellowship + Season of KDE", "Every MLH fork and the upstream it came from; the KDE wiki ideas pages", "120 upstream organizations behind MLH's forks, 87 KDE ideas with their mentors", 285, "plum", "forks + listing"],
+  ["Per-program project archive", "public/data/program-projects/ - one shard per program, indexed by scripts/build-program-projects.mjs", "12 programs' own records, each row keeping the source it was read from", STATS.archive, "leaf", "12 archives"],
 ];
 
 const FOUNDATIONS: [string, string, string][] = [
@@ -78,7 +80,7 @@ export default function Trust() {
         <section className={`${W} mt-[54px]`}>
           <div className="flex items-baseline gap-3 flex-wrap mb-7">
             <h2 className="font-display font-extrabold tracking-[-.02em] text-[clamp(24px,3vw,34px)]">Active snapshot verifications</h2>
-            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · 14,912 archived projects and 11,265 distinct organizations</span>
+            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · {fmt(STATS.archive)} archived program projects · {fmt(STATS.orgRoster)} organizations named by a program archive</span>
           </div>
           <div className="grid grid-cols-3 gap-5 max-[900px]:grid-cols-1">
             {VERIFIED.map(([b, src, sub, n, tone, badge]) => (
@@ -141,7 +143,7 @@ export default function Trust() {
               {[
                 [fmt(REPOS.length), "catalog repos"],
                 [fmt(CRAWL.issues), "open issues crawled"],
-                ["6,682", "archive projects"],
+                [fmt(STATS.archive), "archive projects"],
                 [String(ORGS.length), "org profiles"],
                 [String(PROGRAMS.length), "programs tracked"],
               ].map(([v, l]) => (
