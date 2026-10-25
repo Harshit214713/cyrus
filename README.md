@@ -82,7 +82,7 @@ Every shot below is the live site, captured at 1440px in the light theme.
     <td><img src="docs/readme/shots/sponsors.png" alt="Sponsors directory" width="100%"/></td>
   </tr>
   <tr>
-    <td align="center"><b>Organization intel</b> - 393 real GitHub orgs with live stats and GSoC / LFX / MLH badges</td>
+    <td align="center"><b>Organization intel</b> - 364 GitHub orgs, each named by a program record, with live stats and GSoC / LFX / MLH badges</td>
     <td align="center"><b>Sponsors directory</b> - the 82 catalog repos that take funding, straight from their FUNDING.yml</td>
   </tr>
   <tr>
@@ -125,7 +125,7 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 | Good-first issues board | **40,017 open issues** across the catalog | GitHub Search API via `scripts/build-issue-index.mjs` |
 | Sponsors directory | **82 funded repos**, found in the top 260 by stars | `.github/FUNDING.yml`, read repo by repo |
 | Program deep dives | **13** full program pages, each with its own organization roster | `src/data/programDetails.ts` |
-| Organization intel | **393** live org profiles | `scripts/fetch-orgs.mjs` |
+| Organization intel | **364** live org profiles, every one named by a program | `scripts/fetch-orgs.mjs` → `src/data/orgs.ts`, which drops the 29 fetched profiles no program's record mentions |
 | Dashboard tools | 12 screens - overview, issues, repos, season calendar, demand radar, repo analyser, draft studio, matcher, mentors, compare, git-start, settings | the datasets above, in the browser |
 | Routes | **21** page routes + 13 API handlers | `src/app/` (App Router) |
 
@@ -168,7 +168,7 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 |---|---|
 | `/` | Warm editorial home: interactive hero, programs, contribution timeline, org marquee, skills, stories, FAQ |
 | `/issues` | Good-first-issue finder over 40,017 real open issues - labels, languages, orgs, difficulty |
-| `/organizations` · `/organizations/:login` | 393 real GitHub orgs with live stats and GSoC / LFX / MLH program badges, plus the rest of the 11,265-organization roster |
+| `/organizations` · `/organizations/:login` | 364 GitHub orgs that a program's own record names, with live stats and GSoC / LFX / MLH program badges, plus the rest of the 11,265-organization roster |
 | `/leaderboard` | Real contributor rankings from merged pull requests |
 | `/projects` | The 6,682-project mentored-program archive (2022-2026), filter by year / org / tech |
 | `/programs` · `/programs/:id` | 13 funded programs - calendars, pay bands, who they are for, their full organization roster with overlaps, named mentors, and the project archive |

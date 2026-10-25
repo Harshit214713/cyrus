@@ -1,25 +1,19 @@
 "use client"
 /* ══ CompanyBand.tsx — the companies band that sits just above the
    footer on every page: a dark coffee panel carrying the real org
-   logos whose public GitHub data powers the index.               ══ */
+   logos whose public GitHub data powers the index.
+
+   The twelve names come from the directory itself, biggest first, so a logo
+   here is never a link to a page that does not exist. The hand-picked list
+   this replaces named Google, Microsoft, OpenAI, Anthropic, Vercel and others
+   that no program's record mentions; those profiles are gone from the site and
+   so are their tiles.                                            ══ */
 import { Link } from "@/lib/router";
 import { btn, OrgImg } from "./ui";
 import { avatarOf } from "../lib/util";
+import { ORGS } from "../data/orgs";
 
-const COMPANIES: [string, string][] = [
-  ["google", "Google"],
-  ["microsoft", "Microsoft"],
-  ["github", "GitHub"],
-  ["openai", "OpenAI"],
-  ["anthropics", "Anthropic"],
-  ["huggingface", "Hugging Face"],
-  ["pytorch", "PyTorch"],
-  ["kubernetes", "Kubernetes"],
-  ["vercel", "Vercel"],
-  ["cloudflare", "Cloudflare"],
-  ["langchain-ai", "LangChain"],
-  ["supabase", "Supabase"],
-];
+const COMPANIES = ORGS.slice(0, 12);
 
 export default function CompanyBand() {
   return (
@@ -39,11 +33,11 @@ export default function CompanyBand() {
             GitHub footprint of organizations like these - then re-verified on a schedule.
           </p>
           <div className="grid grid-cols-6 max-[1020px]:grid-cols-4 max-[640px]:grid-cols-2 gap-3 mt-10 max-w-[920px] mx-auto">
-            {COMPANIES.map(([login, name]) => (
-              <Link key={login} to={`/organizations/${login}`}
+            {COMPANIES.map((o) => (
+              <Link key={o.login} to={`/organizations/${o.login}`}
                 className="flex items-center gap-2.5 bg-cream border border-line rounded-[14px] px-3 py-3 min-w-0 text-left shadow-soft hover:-translate-y-0.5 hover:border-ember hover:shadow-lift transition-all">
-                <OrgImg src={avatarOf(login, 64)} name={login} className="w-[26px] h-[26px] rounded-[8px] object-cover bg-sand shrink-0" />
-                <span className="text-[12.5px] font-bold text-ink truncate">{name}</span>
+                <OrgImg src={avatarOf(o.login, 64)} name={o.login} className="w-[26px] h-[26px] rounded-[8px] object-cover bg-sand shrink-0" />
+                <span className="text-[12.5px] font-bold text-ink truncate">{o.name}</span>
               </Link>
             ))}
           </div>

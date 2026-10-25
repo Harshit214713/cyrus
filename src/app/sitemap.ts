@@ -6,8 +6,7 @@
 import type { MetadataRoute } from "next";
 import { REPOS } from "@/data/repos";
 import { PROGRAM_REPOS } from "@/data/programRepos";
-import { REAL_ORGS } from "@/data/realOrgs";
-import { PROGRAMS } from "@/data/orgs";
+import { ORGS, PROGRAMS } from "@/data/orgs";
 import { SITE_ORIGIN } from "@/lib/seo";
 
 /** same union the site resolves /repo/:id against, without pulling in the
@@ -53,7 +52,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
-    ...REAL_ORGS.map((o) => ({
+    ...ORGS.map((o) => ({
       url: url(`/organizations/${o.login}`),
       changeFrequency: "weekly" as const,
       priority: 0.6,

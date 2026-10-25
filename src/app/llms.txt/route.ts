@@ -2,7 +2,7 @@
    A screenful, and every number and path in it comes from the same
    modules the pages use, so this file cannot drift from the site.
    Rebuilt on deploy: the crawl counts are as fresh as the last run. ══ */
-import { PROGRAMS } from "@/data/orgs";
+import { PROGRAMS, ORGS } from "@/data/orgs";
 import { canonical } from "@/lib/seo";
 import { STATS, fmt } from "@/lib/siteStats";
 
@@ -24,7 +24,7 @@ ${line("/organizations", `${fmt(STATS.orgs)} real GitHub organizations with stat
 
 - Repo detail: ${canonical("/repo/n8n-io%2Fn8n")} - the slash in owner/name is percent-encoded
 - Program detail: ${canonical("/programs/gsoc")}
-- Organization detail: ${canonical("/organizations/google")}
+- Organization detail: ${canonical(`/organizations/${ORGS[0].login}`)}
 
 ## Machine-readable
 

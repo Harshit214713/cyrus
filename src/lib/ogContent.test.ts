@@ -6,9 +6,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PROGRAMS } from "@/data/orgs";
+import { PROGRAMS, ORGS } from "@/data/orgs";
 import { REPOS } from "@/data/repos";
-import { REAL_ORGS } from "@/data/realOrgs";
 import { fmt, STATS } from "@/lib/siteStats";
 import { catalogSnapshot, homeCard, programCard } from "@/lib/ogContent";
 
@@ -37,7 +36,7 @@ describe("home card", () => {
     expect(said).toContain(`${fmt(STATS.issues)} across`);
     expect(said).toContain(`${PROGRAMS.length} tracked`);
     expect(said).toContain(`${fmt(STATS.archive)} mentored program projects`);
-    expect(said).toContain(`${REAL_ORGS.length} profiles`);
+    expect(said).toContain(`${ORGS.length} profiles`);
     expect(card.rows).toHaveLength(4);
   });
 

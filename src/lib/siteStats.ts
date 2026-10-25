@@ -7,8 +7,7 @@
    crawl totals against the generated crawl module.                    ══ */
 import { REPOS } from "@/data/repos";
 import { PROGRAM_REPOS } from "@/data/programRepos";
-import { REAL_ORGS } from "@/data/realOrgs";
-import { PROGRAMS } from "@/data/orgs";
+import { ORGS, PROGRAMS } from "@/data/orgs";
 import { CRAWL } from "@/data/crawlStats";
 
 /** gsoc-projects.json (5,238) + otherProjects.json (1,444) */
@@ -22,8 +21,8 @@ export const STATS = {
   repos: REPOS.length,
   /** catalog repos plus the flagship program projects */
   catalog: REPOS.length + PROGRAM_REPOS.length,
-  /** organization profiles built from live GitHub data */
-  orgs: REAL_ORGS.length,
+  /** organization profiles built from live GitHub data, every one named by a program */
+  orgs: ORGS.length,
   /** tracked open-source programs */
   programs: PROGRAMS.length,
   /** mentored projects in the program archive */

@@ -5,7 +5,7 @@
    this file may state a fact the record does not carry.                ══ */
 import { REPOS } from "@/data/repos";
 import type { Program } from "@/lib/types";
-import { REAL_ORGS } from "@/data/realOrgs";
+import { ORGS } from "@/data/orgs";
 import { fmt, STATS } from "@/lib/siteStats";
 
 export type OgRow = { k: string; v: string };
@@ -46,7 +46,7 @@ export function homeCard(): OgCard {
       { k: "Open issues", v: `${fmt(STATS.issues)} across ${fmt(STATS.issueRepos)} repositories` },
       { k: "Programs", v: `${STATS.programs} tracked, all on the 2026 calendar` },
       { k: "Projects", v: `${fmt(STATS.archive)} mentored program projects` },
-      { k: "Organizations", v: `${REAL_ORGS.length} profiles from live GitHub data` },
+      { k: "Organizations", v: `${ORGS.length} profiles, each named by a program` },
     ],
     foot: `Refreshed nightly from GitHub - ${SNAPSHOT}`,
     alt: "cyrus.ai - the open-source contribution index: issues, programs, projects and organizations.",

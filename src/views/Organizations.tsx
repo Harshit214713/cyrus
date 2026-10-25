@@ -2,7 +2,7 @@
 /* ══ Organizations.tsx — searchable org directory + programs ═ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "@/lib/router";
-import { ORGS, PROGRAMS } from "../data/orgs";
+import { ORGS, PROGRAMS, UNASSOCIATED_ORGS } from "../data/orgs";
 import { programsOf, assocNote } from "../data/programAssoc";
 import { ROSTER, ROSTER_LABEL, ROSTER_STATS } from "../data/rosterOrgs";
 import { useRosterIndex } from "../lib/programRoster";
@@ -27,8 +27,11 @@ function PageHead() {
         Find your <Word>people.</Word> Then your<br />first good issue.
       </h1>
       <p className="text-ink font-medium max-w-[640px] text-[16.5px] leading-[1.6]">
-        {ORGS.length} major open-source organizations, tracked live from GitHub. Every profile shows both sides -
-        what they ship and the mentored programs they build, with real participation stats.
+        {ORGS.length} open-source organizations, every one named by a program's own record and
+        tracked live from GitHub. Each profile shows both sides - what they ship and the mentored
+        programs they build, with real participation stats. Accounts that run no program are left
+        out, however popular their repositories are: {UNASSOCIATED_ORGS.length} of them sat in our
+        crawl with nothing to show but a star count, so they are not listed here.
       </p>
     </header>
   );
@@ -156,9 +159,10 @@ function RosterBand() {
               {fmt(ROSTER_STATS.orgs)} organizations ran a mentored project, across{" "}
               {fmt(ROSTER_STATS.projects)} accepted projects in the four archives that publish one - Google Summer
               of Code 2016-2026, LFX, Outreachy and Summer of Bitcoin 2022-2026.{" "}
-              {fmt(ROSTER_STATS.withGithub)} have a GitHub account we could confirm and {ORGS.length} of those
+              {fmt(ROSTER_STATS.withGithub)} have a GitHub account we could confirm and {fmt(ROSTER.length - rest.length)} of those
               are profiled above; the {fmt(rest.length)} here are the remainder, shown exactly as their program
-              recorded them. The wider participation roster - {idx?.totals ? fmt(idx.totals.distinctOrgs) : "several thousand"}{" "}
+              recorded them. The directory itself lists {ORGS.length} organizations - only those a program names,
+              which is why the popular commercial accounts with no participation record are not among them. The wider participation roster - {idx?.totals ? fmt(idx.totals.distinctOrgs) : "several thousand"}{" "}
               distinct organizations across the {idx?.totals ? idx.totals.programs : "eight"} programs that publish
               any record, including 24 Pull Requests and the GSSoC board - is listed on each{" "}
               <Link to="/programs" className="text-accent hover:underline">program page</Link>.
