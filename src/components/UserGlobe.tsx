@@ -1,33 +1,36 @@
 "use client"
-/* ══ UserGlobe.tsx — the sign-in sheet's left panel: "orgs around the world" ═
-   A large dotted globe rising from the bottom of the panel (in the spirit of
-   coddy.tech's hero): a halftone point lattice over hand-authored simplified
-   continent polygons, a small robot pet travelling from country to country,
-   one arrival card that appears where the pet lands, and a calendar ring -
-   twelve months carrying the programs that run in them - orbiting the sphere.
+/* ══ UserGlobe.tsx — the sign-in sheet's left panel: "who builds open source" ═
+   A large dotted globe rising in the panel (in the spirit of coddy.tech's
+   hero): a halftone point lattice over hand-authored simplified continent
+   polygons, a robot standing on the far side of the world with both hands on
+   it, and one card that appears where the robot stops.
 
-   The ring is not decoration pretending to be data. A month carries a program
-   when one of that program's published phases overlaps the month, read from
-   PROGRAMS in src/data/orgs.ts, and each mark is the program's own GitHub
-   organization avatar. Which months are quiet, and which are crowded, falls
-   out of those calendars.
+   The robot is not standing behind the earth, it is turning it. Its body is
+   painted under the canvas so the sphere covers its lower half; its arms and
+   hands are a second layer painted over the canvas, reaching onto the near
+   face of the globe and working in a slow circle. Same character, two layers,
+   and the sphere spins underneath them.
+
+   Pointing at a landmass lights up that continent's dots and prints how many
+   developers are behind it. That number is not an estimate: it counts the
+   GitHub accounts on this site's contributor board whose published location
+   resolves to a country in that continent (scripts/build-continent-devs.mjs).
+   Anything the crawl could not resolve - "Remote", "Earth" - is dropped, so
+   every figure is a floor rather than a guess.
 
    Honesty rules baked in:
-   - Dots are NOT people. The caption says exactly what they are: the countries
-     where the open-source organizations this site tracks publish a location on
-     their public GitHub profile.
-   - Counts and organization names only ever come from the fetched JSON file;
-     when it is missing the panel shows a labelled sample list with NO numbers.
+   - Dots are NOT people. Green pins are the countries where the open-source
+     organizations this site tracks publish a location on their GitHub profile.
+   - Counts and names only ever come from the fetched JSON files; when they are
+     missing the panel shows a labelled sample list with NO numbers.
 
-   Tech: one <canvas> (DPR-capped at 2), DOM nodes for the pet and the card,
-   every colour resolved from the site's CSS custom properties (blended in srgb
-   by hand - the same arithmetic color-mix(in srgb) does) so both themes work
-   without a single hex literal and without a dark: variant - the theme flips
-   by remapping those variables on <html.light>.
-   No npm additions, no external assets beyond the programs' own published
-   GitHub avatars, one JSON fetch. */
+   Tech: one <canvas> (DPR-capped at 2), DOM nodes for the pet, its hands and
+   the two cards, every colour resolved from the site's CSS custom properties
+   (blended in srgb by hand - the same arithmetic color-mix(in srgb) does) so
+   both themes work without a single hex literal and without a dark: variant -
+   the theme flips by remapping those variables on <html.light>.
+   No npm additions, one fetch per JSON file. */
 import { useEffect, useRef, useState } from "react";
-import { PROGRAMS } from "../data/orgs";
 
 const TAU = Math.PI * 2;
 const D2R = Math.PI / 180;
@@ -35,7 +38,10 @@ const D2R = Math.PI / 180;
 /* ── simplified continent outlines ─────────────────────────────────────
    Rough [lon, lat] polygons drawn from geographic knowledge, deliberately
    stylised: they read as Earth without pretending to be an atlas. Rasterized
-   once into a 360x180 mask at module init (a few ms), then sampled O(1). */
+   once into a 360x180 mask at module init (a few ms), then sampled O(1).
+   Each outline carries the continent a hover should answer with; LAND_CONT
+   is the same list by index, "" for Antarctica, which has no developers and
+   so is deliberately unhov able. */
 type Pt = [number, number];
 const LAND: Pt[][] = [
   /* Africa */ [[-17, 15], [-16, 21], [-10, 26], [-3, 35], [10, 37], [20, 32], [25, 32], [34, 30], [35, 24], [39, 15], [43, 11], [51, 12], [48, 5], [42, -1], [40, -8], [36, -18], [33, -26], [27, -34], [19, -35], [15, -28], [12, -18], [9, -1], [9, 4], [4, 6], [-4, 5], [-8, 4], [-13, 8], [-16, 12]],
@@ -52,6 +58,16 @@ const LAND: Pt[][] = [
   /* Sri Lanka */ [[80, 9], [82, 7], [80, 6]],
   /* Antarctica */ [[-180, -90], [180, -90], [180, -72], [120, -67], [60, -68], [0, -70], [-60, -63], [-120, -68], [-180, -72]],
 ];
+/* index-for-index with LAND. "Eurasia" is one outline for two continents, so
+   it is resolved by coordinates instead (see regionAt). */
+const LAND_CONT = [
+  "Africa", "Africa", "South America", "North America", "North America", "Eurasia",
+  "Europe", "Asia", "Oceania", "Oceania", "Europe", "Asia", "",
+];
+/* the hover answer for a point on the single Eurasian outline: everything east
+   of the Urals or south of the Mediterranean belt is Asia */
+const regionAt = (latDeg: number, lonDeg: number, cont: string): string =>
+  cont !== "Eurasia" ? cont : (latDeg > 36 && lonDeg < 62 ? "Europe" : "Asia");
 
 const W = 360, H = 180;                 /* mask resolution: 1 deg per cell */
 const MASK = new Uint8Array(W * H);
@@ -62,19 +78,28 @@ const inPoly = (x: number, y: number, p: Pt[]): boolean => {
   }
   return c;
 };
+const LAND_BOX = LAND.map((p) => {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const [x, y] of p) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  return [x0, x1, y0, y1] as const;
+});
+/* the continent a [lon, lat] point belongs to, "" for ocean and Antarctica */
+const contOf = (latDeg: number, lonDeg: number): string => {
+  for (let k = 0; k < LAND.length; k++) {
+    const b = LAND_BOX[k];
+    if (lonDeg < b[0] || lonDeg > b[1] || latDeg < b[2] || latDeg > b[3]) continue;
+    if (inPoly(lonDeg, latDeg, LAND[k])) return regionAt(latDeg, lonDeg, LAND_CONT[k]);
+  }
+  return "";
+};
 {
   const polys = LAND;
-  const boxes = polys.map((p) => {
-    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    for (const [x, y] of p) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    return [x0, x1, y0, y1] as const;
-  });
   for (let r = 0; r < H; r++) {
     const y = 90 - (r + 0.5);
     for (let c = 0; c < W; c++) {
       const x = -180 + (c + 0.5);
       for (let k = 0; k < polys.length; k++) {
-        const b = boxes[k];
+        const b = LAND_BOX[k];
         if (x < b[0] || x > b[1] || y < b[2] || y > b[3]) continue;
         if (inPoly(x, y, polys[k])) { MASK[r * W + c] = 1; break; }
       }
@@ -117,8 +142,12 @@ const rowCols = rowLats.map((lat) => {
   return n;
 });
 const N = TOTAL;
+/* slot 0 is "not a continent" (ocean, or Antarctica), so a hover that lands
+   there simply shows nothing */
+const CONT_IDX = ["", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
 const PX = new Float32Array(N), PY = new Float32Array(N), PZ = new Float32Array(N);
 const LANDV = new Float32Array(N);        /* 1 = land, 0 = ocean            */
+const CONTI = new Int8Array(N);           /* CONT_IDX slot of this point's continent */
 {
   let k = 0;
   rowLats.forEach((lat, ri) => {
@@ -130,6 +159,7 @@ const LANDV = new Float32Array(N);        /* 1 = land, 0 = ocean            */
       const a = lon * D2R, b = lat * D2R;
       PX[k] = cl * Math.sin(a); PY[k] = Math.sin(b); PZ[k] = cl * Math.cos(a);
       LANDV[k] = landAt(lat, lon);
+      CONTI[k] = CONT_IDX.indexOf(contOf(lat, lon));
       k++;
     }
   });
@@ -209,41 +239,58 @@ const angBetween = (a: Stop, b: Stop) => {
    constant sizes the DOM box, the svg and the gap its arrival card keeps. */
 const PET = 118;
 
-/* ── the calendar ring ──────────────────────────────────────────────────
-   Twelve month markers on one orbit around the sphere. A month carries a
-   program when one of that program's published phases overlaps it - phases
-   are decimal month indices (0 = January), so October is 9 and Hacktoberfest's
-   {s: 9, e: 10} lands on it. Marks are the program's own GitHub organization
-   avatar, the same one its program page already links out to. MAX caps the
-   crowded months so the ring stays readable; the pill then says how many more
-   programs are running that month. */
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const MAX_MARKS = 4;
-type RingMark = { id: string; name: string; owner: string };
-const MONTH_PROGRAMS: RingMark[][] = MONTHS.map((_, m) =>
-  PROGRAMS
-    .filter((p) => (p.phases ?? []).some((ph) => ph.s <= m + 0.999 && ph.e >= m + 0.001))
-    .map((p) => ({ id: p.id, name: p.name, owner: p.owner }))
-    .sort((a, b) => a.name.localeCompare(b.name)),
-);
-
-const RING_SPIN = TAU / 150;                /* one orbit every ~2.5 minutes */
+/* ── developers per continent ────────────────────────────────────────────
+   What a hover answers with, read from /data/continent-devs.json - a roll-up
+   of the contributor board's published GitHub locations
+   (scripts/build-continent-devs.mjs). The file is the only source: a continent
+   with no developers in it is reported as such rather than rounded up, and a
+   missing file switches the hover to the organization count the atlas carries. */
+type DevCountry = { country: string; devs: number };
+type DevContinent = { name: string; devs: number; top: DevCountry; countries: DevCountry[] };
+const devByContinent = (raw: unknown): Map<string, DevContinent> | null => {
+  const list = (raw as { continents?: unknown })?.continents;
+  if (!Array.isArray(list)) return null;
+  const out = new Map<string, DevContinent>();
+  for (const item of list as Record<string, unknown>[]) {
+    const name = typeof item?.name === "string" ? item.name : "";
+    const devs = Number(item?.devs);
+    if (!name || !Number.isFinite(devs) || devs <= 0) continue;
+    const topRaw = (item.top ?? {}) as Record<string, unknown>;
+    const topName = typeof topRaw.country === "string" ? topRaw.country : "";
+    out.set(name, {
+      name,
+      devs: Math.round(devs),
+      top: { country: topName, devs: Number(topRaw.devs) || 0 },
+      countries: Array.isArray(item.countries)
+        ? (item.countries as Record<string, unknown>[])
+          .map((c) => ({ country: typeof c.country === "string" ? c.country : "", devs: Number(c.devs) || 0 }))
+          .filter((c) => c.country)
+        : [],
+    });
+  }
+  return out.size ? out : null;
+};
 
 export default function UserGlobe() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const petRef = useRef<HTMLDivElement | null>(null);
+  /* the robot's arms and hands, painted over the canvas so they grip the
+     sphere instead of hiding behind it */
+  const armARef = useRef<SVGPathElement | null>(null);
+  const armBRef = useRef<SVGPathElement | null>(null);
+  const handARef = useRef<SVGCircleElement | null>(null);
+  const handBRef = useRef<SVGCircleElement | null>(null);
+  const handsRef = useRef<SVGSVGElement | null>(null);
   const pillRef = useRef<HTMLDivElement | null>(null);
   const pillNameRef = useRef<HTMLSpanElement | null>(null);
   const pillSubRef = useRef<HTMLSpanElement | null>(null);
   const pillSampleRef = useRef<HTMLDivElement | null>(null);
-  /* the twelve month markers, moved by the same clock as the sphere */
-  const markRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  /* "this month" cannot be read during render: the prerender happens on the
-     build machine's clock, so the highlight is applied after mount. */
-  const [nowMonth, setNowMonth] = useState(-1);
-  useEffect(() => { setNowMonth(new Date().getMonth()); }, []);
+  /* the hover card: continent, developer count, the country behind most of them */
+  const tipRef = useRef<HTMLDivElement | null>(null);
+  const tipNameRef = useRef<HTMLSpanElement | null>(null);
+  const tipNumRef = useRef<HTMLSpanElement | null>(null);
+  const tipSubRef = useRef<HTMLDivElement | null>(null);
 
   /* null = the file never loaded: render the labelled sample list. */
   const [fileData, setFileData] = useState<Parsed | null>(null);
@@ -270,6 +317,22 @@ export default function UserGlobe() {
 
   const dataRef = useRef<Parsed | null>(null);
   dataRef.current = fileData;
+
+  /* the developer roll-up the hover reads, in a ref so a late fetch does not
+     restart the animation loop */
+  const devsRef = useRef<Map<string, DevContinent>>(new Map());
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const r = await fetch("/data/continent-devs.json");
+        if (!r.ok) return;
+        const m = devByContinent(await r.json().catch(() => null));
+        if (m && live) devsRef.current = m;
+      } catch { /* no file: the hover falls back to the organization count */ }
+    })();
+    return () => { live = false; };
+  }, []);
 
   /* ── the whole render pipeline: measure -> resolve tokens -> animate ──
      Re-runs once when the atlas arrives, so the reduced-motion still frame and
@@ -333,7 +396,7 @@ export default function UserGlobe() {
     type Theme = {
       bodyIn: string; bodyOut: string; limb: string; rim: string;
       glow: string; land: HTMLCanvasElement; landEdge: HTMLCanvasElement;
-      sea: HTMLCanvasElement; pin: string;
+      landHot: HTMLCanvasElement; sea: HTMLCanvasElement; pin: string;
     };
     let th: Theme;
     const relTheme = () => {
@@ -354,35 +417,31 @@ export default function UserGlobe() {
         glow:    mix("--color-accent", 15, "--color-paper"),
         land:     sprite(varv("--color-ink")),
         landEdge: sprite(mix("--color-ink", 45, "--color-cocoa")),
+        /* the hovered continent's dots step forward: ink pulled toward accent,
+           so the land lights up without the sphere changing colour */
+        landHot:  sprite(mix("--color-ink", 72, "--color-accent")),
         sea:      sprite(mix("--color-dim", 62, "--color-paper")),
         pin:      varv("--color-accent"),
       };
     };
 
-    let w = 0, h = 0, R = 0, cx = 0, cy = 0, dpr = 1, rx = 0, ry = 0;
+    let w = 0, h = 0, R = 0, cx = 0, cy = 0, dpr = 1;
     const measure = () => {
       w = stage.clientWidth; h = stage.clientHeight;
       dpr = Math.min(2, window.devicePixelRatio || 1);
       cvs.width = Math.max(1, Math.round(w * dpr));
       cvs.height = Math.max(1, Math.round(h * dpr));
-      /* the earth is the backdrop, not the subject: a small, complete sphere
-         sitting low-centre in the panel. It used to bleed off the bottom edge,
-         which left the top half of the panel empty and made the pet look like
-         it was standing on the floor rather than in front of the world. */
-      R = Math.max(140, Math.min(w * 0.36, h * 0.385));
+      /* the earth rides high in the panel. It used to sit at the vertical
+         middle and bleed toward the bottom, which pushed the robot down against
+         the panel edge; at 0.42 the sphere and the robot both read as floating
+         in the upper field, with the empty half of the panel below them doing
+         nothing but holding the composition. */
+      R = Math.max(132, Math.min(w * 0.36, h * 0.34));
       cx = w / 2;
-      cy = h * 0.52;
-      /* the calendar orbit: wide enough that a marker clears the sphere's
-         limb, flat enough to read as a ring seen near edge-on */
-      rx = R * 1.17;
-      ry = R * 0.34;
+      cy = h * 0.42;
     };
     measure();
     relTheme();
-
-    /* the orbit opens with the current month at the front of the sphere; read
-       on the client, because the build machine's clock is not the visitor's */
-    const ring0 = Math.PI / 2 - new Date().getMonth() * (TAU / 12);
 
     const project = (latDeg: number, lonDeg: number, psi: number) => {
       const cl = Math.cos(latDeg * D2R);
@@ -392,22 +451,55 @@ export default function UserGlobe() {
       return { x: cx + R * x, y: cy - R * (y * COS_T - z0 * SIN_T), z: y * SIN_T + z0 * COS_T };
     };
 
+    /* screen -> surface, the inverse of project() for the front hemisphere. A
+       pixel gives the normalised x (a) and the tilted y (Y); every point on the
+       sphere with that x lies on a circle of radius sqrt(1 - a²), so the view
+       depth is the near root of Y² + Z² = 1 - a². Returns null off the disc and
+       on the far side, which is exactly the behaviour a hover wants. */
+    const surfaceAt = (sx: number, sy: number, psi: number) => {
+      const a = (sx - cx) / R;
+      const Y = (cy - sy) / R;
+      const s2 = 1 - a * a;
+      if (s2 <= 0.0001) return null;
+      const z2 = s2 - Y * Y;
+      if (z2 <= 0.0001) return null;
+      const Z = Math.sqrt(z2);
+      const b = Y * COS_T + Z * SIN_T;
+      const c0 = -Y * SIN_T + Z * COS_T;
+      return {
+        lat: Math.asin(Math.max(-1, Math.min(1, b))) / D2R,
+        lon: Math.atan2(a, c0) / D2R - psi / D2R,
+      };
+    };
+
     /* journey state machine */
     const cs = (): Country[] => dataRef.current?.list ?? FALLBACK_COUNTRIES;
     const stopAt = (i: number): Stop => { const c = cs()[i]; return { lat: c.lat, lon: c.lon, i }; };
     let J: Journey | null = null;
     let retry = 0;
     let lastData: Parsed | null | "init" = "init";
-    /* a stop is "good" when it projects onto the front face AND leaves room for
-       the pet's own body - it is 104px tall now, so the band a stop can sit in
-       is the sphere's face minus the mascot's head above and feet below, and
-       clear of the caption card parked in the bottom-left corner */
+    /* the robot never stands on the face of the world - it stands at the limb,
+       on the centre-to-country line pushed out to the sphere's edge. Its body
+       is half hidden by the earth that way, which is what reads as scale. */
+    const anchorOf = (p: { x: number; y: number }) => {
+      const dx = p.x - cx, dy = p.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      return { x: cx + (dx / d) * R * 0.955, y: cy + (dy / d) * R * 0.955 };
+    };
+    /* a stop is "good" when the robot it produces is whole: front face, clear of
+       both panel edges, and high enough that its head and its arrival card fit
+       under the top of the stage. The band is measured on the anchor rather than
+       the country point because the anchor is what the body is drawn around, and
+       it rides high - the robot stands over the world, not under it. */
     const goodAt = (i: number, psi: number, minZ: number) => {
       const c = cs()[i];
       const p = project(c.lat, c.lon, psi);
+      if (p.z <= minZ) return null;
+      const a = anchorOf(p);
       const half = PET / 2;
-      return p.z > minZ && p.x > w * 0.2 + half && p.x < w * 0.8 - half
-        && p.y > h * 0.14 + PET && p.y < h * 0.78 ? p : null;
+      if (a.x < w * 0.18 + half || a.x > w * 0.82 - half) return null;
+      if (a.y < PET * 0.82 + 18 || a.y > h * 0.62) return null;
+      return p;
     };
     const startJourney = () => {
       const list = cs();
@@ -438,6 +530,40 @@ export default function UserGlobe() {
       retry = 0.9;                          /* everyone is on the far side: wait */
     };
 
+    /* ── the hover ──────────────────────────────────────────────────────
+       A pixel on the sphere inverts to a latitude/longitude, that point falls
+       inside one of the hand-drawn outlines, and the outline's continent
+       answers with how many developers this site can actually name behind it.
+       The developer roll-up is the primary answer; if its file did not load,
+       the hover says what it does know - the organizations located there. */
+    let pointer: { x: number; y: number } | null = null;
+    const orgsIn = (name: string) => {
+      let n = 0;
+      for (const c of cs()) if (contOf(c.lat, c.lon) === name) n += c.orgs ?? 0;
+      return n;
+    };
+    const paintTip = (slot: number) => {
+      const el = tipRef.current, nm = tipNameRef.current, num = tipNumRef.current, sub = tipSubRef.current;
+      if (!el || !nm || !num || !sub) return;
+      const cont = CONT_IDX[slot] || "";
+      const dev = cont ? devsRef.current.get(cont) : undefined;
+      const orgs = cont ? orgsIn(cont) : 0;
+      if (!pointer || (!dev && !orgs)) { el.style.opacity = "0"; return; }
+      const count = dev ? dev.devs : orgs;
+      const unit = dev ? (dev.devs === 1 ? "developer" : "developers") : (orgs === 1 ? "org" : "orgs");
+      const tail = dev
+        ? `${dev.countries.length} ${dev.countries.length === 1 ? "country" : "countries"} · most in ${dev.top.country} (${dev.top.devs})`
+        : "organizations publish a location there";
+      nm.textContent = cont;
+      num.textContent = `${count} ${unit}`;
+      sub.textContent = tail;
+      const tw = el.offsetWidth || 190, th = el.offsetHeight || 46;
+      const x = Math.max(10, Math.min(w - tw - 10, pointer.x + 16));
+      const y = Math.max(10, Math.min(h - th - 10, pointer.y - th - 14));
+      el.style.opacity = "1";
+      el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+    };
+
     const render = (t: number, psi: number) => {
       if (w <= 0) return;
       /* the live atlas may arrive after mount - re-seed the journey on it */
@@ -445,19 +571,20 @@ export default function UserGlobe() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
-      /* the calendar orbit, seen edge-on: the far half is drawn first so the
-         sphere covers it, the near half last so it crosses in front. */
-      const ringOf = (a: number) => ({ x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) });
-      const arc = (from: number, to: number, alpha: number) => {
-        ctx.strokeStyle = `rgba(${th.rim},${alpha})`;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 6]);
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, 0, from, to);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      };
-      arc(0, TAU, 0.24);
+      /* the continent under the cursor, re-read every frame: the earth turns
+         under a still pointer, so the answer has to turn with it */
+      let hoverConti = 0;
+      if (pointer) {
+        const s = surfaceAt(pointer.x, pointer.y, psi);
+        if (s) {
+          const nm = contOf(s.lat, s.lon);
+          const idx = CONT_IDX.indexOf(nm);
+          if (idx > 0) hoverConti = idx;
+        }
+      }
+      paintTip(hoverConti);
+
+      /* the calendar orbit is gone; the halo is the only atmosphere now */
 
       /* atmosphere halo */
       let g = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.12);
@@ -482,6 +609,7 @@ export default function UserGlobe() {
       /* the dots: land firm and crisp, ocean a faint deterministic stipple, so
          the continents read as texture rather than as an outline */
       const cpsi = Math.cos(psi), spsi = Math.sin(psi);
+      const hot = hoverConti;
       for (let i = 0; i < N; i++) {
         const x = PZ[i] * spsi + PX[i] * cpsi;
         const z0 = PZ[i] * cpsi - PX[i] * spsi;
@@ -493,9 +621,14 @@ export default function UserGlobe() {
         const edge = 1 - Math.pow(1 - z, 3);
         let a: number, s: number, spr: HTMLCanvasElement;
         if (land > 0.5) {
-          a = (0.5 + 0.45 * land) * (0.46 + 0.54 * z) * edge;
-          s = 2.3 + 1.6 * z;
-          spr = land > 0.82 ? th.land : th.landEdge;
+          /* the continent under the cursor steps forward and the rest of the
+             land holds back, so a hover reads as one region lighting up rather
+             than the whole map changing */
+          const isHot = hot > 0 && CONTI[i] === hot;
+          const gain = hot > 0 ? (isHot ? 1.2 : 0.62) : 1;
+          a = (0.5 + 0.45 * land) * (0.46 + 0.54 * z) * edge * gain;
+          s = (2.3 + 1.6 * z) * (isHot ? 1.26 : 1);
+          spr = isHot ? th.landHot : (land > 0.82 ? th.land : th.landEdge);
         } else {
           if (hash01(i) > 0.78) continue;   /* ocean: a light even stipple    */
           a = 0.11 * (0.4 + 0.6 * z) * edge;
@@ -513,26 +646,6 @@ export default function UserGlobe() {
       ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
 
-      /* the near half of the orbit, painted over the sphere */
-      arc(0, Math.PI, 0.5);
-
-      /* the month markers ride that ellipse. Depth is sin(angle): the bottom
-         half is in front of the earth, the top half behind it, so a marker
-         dims and shrinks as it goes round the back instead of sliding over
-         the face of it. */
-      const ringPsi = ring0 + t * RING_SPIN;
-      for (let i = 0; i < 12; i++) {
-        const el = markRefs.current[i];
-        if (!el) continue;
-        const a = ringPsi + (i * TAU) / 12;
-        const s = Math.sin(a);
-        const f = (s + 1) / 2;
-        const p = ringOf(a);
-        const front = s > 0;
-        el.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-50%) scale(${(0.74 + 0.3 * f).toFixed(3)})`;
-        el.style.opacity = (0.14 + 0.86 * Math.pow(f, 1.5)).toFixed(3);
-        el.style.zIndex = front ? "4" : "0";
-      }
 
       /* country pins: the only green on the map, quiet dots on the front face */
       const list = cs();
@@ -562,41 +675,82 @@ export default function UserGlobe() {
       const xw = vz * spsi + vx * cpsi;
       const z0w = vz * cpsi - vx * spsi + hop;
       const mp = { x: cx + R * xw, y: cy - R * (vy * COS_T - z0w * SIN_T), z: vy * SIN_T + z0w * COS_T };
-      /* fade out before the panel edge can clip the pet mid-rest - the margins
-         are in pixels now that the pet is a fixed 104px body */
+      /* fade out before the panel edge can clip the pet mid-rest */
       const win = (v: number, a: number, b: number) => Math.max(0, Math.min(1, (v - a) / (b - a)));
       const half = PET / 2;
       const mv = Math.max(0, Math.min(1, (mp.z - 0.06) / 0.28))
                * win(mp.x, half + 10, half + 62) * (1 - win(mp.x, w - half - 62, w - half - 10));
-      /* the pet walks behind the earth, not across its face: the anchor is
-         pushed out to the limb along the centre-to-country line, so the lower
-         half of the body is hidden by the sphere and the mascot peeks round
-         the edge of the world at every stop */
-      const dx = mp.x - cx, dy = mp.y - cy;
-      const d = Math.hypot(dx, dy) || 1;
-      const rr = R * 0.955;
-      const apx = cx + (dx / d) * rr;
-      const apy = cy + (dy / d) * rr;
+      /* the robot stands at the limb on the centre-to-country line, so the
+         sphere covers the lower half of its body and it reads as being bigger
+         than the world it is holding */
+      const { x: apx, y: apy } = anchorOf(mp);
+      const nx = (apx - cx) / (R * 0.955), ny = (apy - cy) / (R * 0.955);   /* outward */
+      const tx = -ny, ty = nx;                                              /* along the limb */
+      const bob = reduced ? 0 : Math.sin(t * 2.1) * (PET / 48);
       if (pet) {
-        const bob = reduced ? 0 : Math.sin(t * 2.1) * (PET / 48);
         const depth = 0.9 + 0.1 * ((mp.z + 1) / 2);
         pet.style.opacity = mv.toFixed(3);
         pet.style.transform = `translate(${apx.toFixed(1)}px,${(apy + bob).toFixed(1)}px) translate(-50%,-50%) scale(${depth.toFixed(3)})`;
+      }
+      /* the arms: a second layer painted OVER the canvas, from the robot's
+         shoulders onto the near face of the sphere. They slide along the limb
+         in a slow cycle that matches the spin, so the earth is not turning by
+         itself - it is being pushed round by two hands. */
+      const hands = handsRef.current;
+      if (hands && armARef.current && armBRef.current && handARef.current && handBRef.current) {
+        /* one shared slide: both hands travel the limb in the same direction,
+           the way two hands roll a ball. Counter-phase looked like clapping. */
+        const push = reduced ? 0 : Math.sin(t * 0.62) * (PET * 0.12);
+        const reach = PET * 0.60;                    /* palm distance in from the anchor */
+        const spread = PET * 0.36;                  /* the two hands sit side by side   */
+        const grip = (off: number, rad: number) => ({
+          x: apx - nx * rad + tx * (off + push),
+          y: apy - ny * rad + ty * (off + push) + bob,
+        });
+        const hA = grip(spread, reach);
+        const hB = grip(-spread * 0.72, reach * 0.92);
+        const right = hA.x >= hB.x ? hA : hB, left = hA.x >= hB.x ? hB : hA;
+        /* the shoulders are where the pet's own arm stubs start, in its upright
+           frame: 0.27 of the body width to either side, 0.16 below the middle */
+        const sR = { x: apx + PET * 0.27, y: apy + PET * 0.16 + bob };
+        const sL = { x: apx - PET * 0.27, y: apy + PET * 0.16 + bob };
+        /* the elbow bulges away from the sphere's centre, which is how an arm
+           holding a ball reads rather than a straight line to a dot */
+        const arm = (s: { x: number; y: number }, hd: { x: number; y: number }) => {
+          const mx2 = (s.x + hd.x) / 2, my = (s.y + hd.y) / 2;
+          return `M${s.x.toFixed(1)},${s.y.toFixed(1)} Q${(mx2 + nx * PET * 0.14).toFixed(1)},${(my + ny * PET * 0.14).toFixed(1)} ${hd.x.toFixed(1)},${hd.y.toFixed(1)}`;
+        };
+        armARef.current.setAttribute("d", arm(sR, right));
+        armBRef.current.setAttribute("d", arm(sL, left));
+        const hr = (PET * 0.10).toFixed(1);
+        handARef.current.setAttribute("cx", right.x.toFixed(1));
+        handARef.current.setAttribute("cy", right.y.toFixed(1));
+        handARef.current.setAttribute("r", hr);
+        handBRef.current.setAttribute("cx", left.x.toFixed(1));
+        handBRef.current.setAttribute("cy", left.y.toFixed(1));
+        handBRef.current.setAttribute("r", hr);
+        hands.style.opacity = mv.toFixed(3);
       }
       if (pill && pn && ps && psm) {
         const c = list[J.b.i];
         const show = J.phase === "rest" ? mv : 0;
         if (show > 0.02) {
           if (pn.textContent !== c.name) pn.textContent = c.name;
-          const sub = c.orgs != null ? `${c.orgs} ${c.orgs === 1 ? "org" : "orgs"}` : "orgs tracked";
+          const cont = CONT_IDX[CONT_IDX.indexOf(contOf(c.lat, c.lon))];
+          const dev = devsRef.current.get(cont);
+          const sub = dev
+            ? `${dev.devs} developer${dev.devs === 1 ? "" : "s"}`
+            : c.orgs != null ? `${c.orgs} ${c.orgs === 1 ? "org" : "orgs"}` : "orgs tracked";
           if (ps.textContent !== sub) ps.textContent = sub;
-          const sm = c.sample.join(" · ");
+          const sm = dev
+            ? `most of them in ${dev.top.country}`
+            : c.sample.join(" · ");
           if (psm.textContent !== sm) psm.textContent = sm;
           psm.style.display = sm ? "block" : "none";
           const pop = reduced ? 1 : 0.92 + 0.08 * easeIO(Math.min(1, J.t / 0.5));
           const px = Math.max(112, Math.min(w - 112, apx));
           /* the card sits above the half of the pet that clears the limb */
-          const py = Math.max(h * 0.16, Math.min(h * 0.72, apy)) - (PET * 0.6 + 10);
+          const py = Math.max(44, Math.min(h * 0.66, apy) - (PET * 0.72 + 6));
           pill.style.opacity = show.toFixed(3);
           pill.style.transform = `translate(${px.toFixed(1)}px,${py.toFixed(1)}px) translate(-50%,-100%) scale(${pop.toFixed(3)})`;
         } else {
@@ -649,6 +803,17 @@ export default function UserGlobe() {
     const ro = new ResizeObserver(() => { measure(); if (reduced) render(0, PSI0); });
     ro.observe(stage);
 
+    /* the hover is only a stored pixel: render() does the geography each frame,
+       so a stationary cursor still gets the right answer as the world turns */
+    const onMove = (e: PointerEvent) => {
+      const b = stage.getBoundingClientRect();
+      pointer = { x: e.clientX - b.left, y: e.clientY - b.top };
+      if (reduced) render(0, PSI0);
+    };
+    const onLeave = () => { pointer = null; paintTip(0); if (reduced) render(0, PSI0); };
+    stage.addEventListener("pointermove", onMove);
+    stage.addEventListener("pointerleave", onLeave);
+
     /* the theme flips by toggling .light on <html> - re-resolve tokens at once */
     const mo = new MutationObserver(() => { relTheme(); render(t, PSI0 + t * SPIN); });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
@@ -656,12 +821,13 @@ export default function UserGlobe() {
     return () => {
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
+      stage.removeEventListener("pointermove", onMove);
+      stage.removeEventListener("pointerleave", onLeave);
       ro.disconnect();
       mo.disconnect();
     };
   }, [fileData]);
 
-  const hasData = !!fileData;
   return (
     <div className="relative z-10 flex h-full w-full flex-col items-stretch">
       <style>{`
@@ -674,8 +840,10 @@ export default function UserGlobe() {
           The sheet's own "Back to Home" pill sits in the screen's top-left
           corner, so the stage starts below it (see the mt on the stage). */}
 
-      {/* the globe stage, bleeding to the panel's bottom edge */}
-      <div ref={stageRef} className="relative -mx-12 -mb-12 mt-[46px] min-h-[320px] flex-1 self-stretch">
+      {/* the globe stage, bleeding to the panel's bottom edge. The pointer
+          lives here: a hover on the sphere answers with that continent's
+          developers, so the stage is interactive, not a poster. */}
+      <div ref={stageRef} data-globe-stage className="relative -mx-12 -mb-12 mt-[46px] min-h-[320px] flex-1 cursor-crosshair self-stretch">
         <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full" aria-hidden="true" />
 
         {/* the pet: original inline SVG robot, and the largest thing on the
@@ -724,60 +892,38 @@ export default function UserGlobe() {
             className="mt-[6px] hidden font-mono text-[8.5px] uppercase leading-none tracking-[.12em] text-dim" />
         </div>
 
-        {/* the calendar ring: twelve month markers, each carrying the programs
-            whose published phases overlap that month. Positioned by the same
-            clock as the sphere, so they swing behind it and come round again.
-            The images are the programs' own GitHub organization avatars - the
-            same ones their program pages link to - with a monogram fallback if
-            an avatar ever fails to load. */}
-        <div className="pointer-events-none absolute inset-0" role="img"
-          aria-label="A year ringed around the earth: each month shows the open-source programs running in it.">
-          {MONTHS.map((mo, i) => {
-            const marks = MONTH_PROGRAMS[i];
-            const shown = marks.slice(0, MAX_MARKS);
-            const extra = marks.length - shown.length;
-            const here = i === nowMonth;
-            return (
-              <div key={mo} ref={(el) => { markRefs.current[i] = el; }}
-                className="absolute left-0 top-0 flex flex-col items-center gap-[3px] opacity-0 will-change-transform"
-                style={{ transform: "translate(-999px,-999px)" }}>
-                <span className={`font-mono text-[8.5px] font-bold uppercase leading-none tracking-[.16em] ${here ? "text-accent" : "text-cocoa"}`}>
-                  {mo}
-                </span>
-                <span className={`flex items-center rounded-full border bg-card/90 py-[2px] pl-[2px] pr-[5px] shadow-soft ${here ? "border-accent/70" : "border-line"}`}>
-                  <span className="flex -space-x-[5px]">
-                    {shown.map((m) => (
-                      <img key={m.id} src={`https://github.com/${m.owner}.png?size=48`} alt="" title={m.name}
-                        width={15} height={15}
-                        className="h-[15px] w-[15px] rounded-full border border-card/90 bg-liness object-cover"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }} />
-                    ))}
-                  </span>
-                  {extra > 0 && (
-                    <span className="ml-[3px] font-mono text-[8px] font-bold leading-none text-dim">+{extra}</span>
-                  )}
-                  {marks.length === 0 && (
-                    <span className="ml-[1px] mr-[2px] font-mono text-[8px] leading-none text-dim">·</span>
-                  )}
-                </span>
-              </div>
-            );
-          })}
+        {/* the robot's arms and hands, drawn over the canvas in stage
+            coordinates so they grip the sphere instead of hiding behind it.
+            Their geometry is written every frame by the animation loop. */}
+        <svg ref={handsRef} className="pointer-events-none absolute inset-0 z-[3] h-full w-full opacity-0"
+          style={{ color: "var(--color-accent)", filter: "drop-shadow(0 4px 10px color-mix(in srgb, var(--color-coffee) 60%, transparent))" }}
+          aria-hidden="true">
+          {/* arms thinner than palms, and each hand carries a hairline of the
+              sphere's own shadow colour - without it a same-colour circle melts
+              into its stroke and the grip reads as one thick blob */}
+          <path ref={armARef} fill="none" stroke="currentColor" strokeWidth={PET * 0.07} strokeLinecap="round" opacity=".95" />
+          <path ref={armBRef} fill="none" stroke="currentColor" strokeWidth={PET * 0.07} strokeLinecap="round" opacity=".95" />
+          <circle ref={handARef} fill="currentColor" stroke="var(--color-coffee)" strokeWidth="1.2" />
+          <circle ref={handBRef} fill="currentColor" stroke="var(--color-coffee)" strokeWidth="1.2" />
+        </svg>
+
+        {/* the hover card: which continent the cursor is on, and how many
+            developers this site can name behind it */}
+        <div ref={tipRef} data-globe-tip
+          className="pointer-events-none absolute left-0 top-0 z-[4] rounded-[12px] border border-line bg-card px-2.5 py-[7px] opacity-0 shadow-soft transition-opacity duration-200"
+          style={{ transform: "translate(-999px,-999px)" }}>
+          <div className="flex items-baseline gap-2">
+            <span ref={tipNameRef} className="text-[12px] font-bold leading-none text-ink" />
+            <span ref={tipNumRef} className="text-[11px] font-semibold leading-none text-accent" />
+          </div>
+          <div ref={tipSubRef} className="mt-[5px] font-mono text-[8.5px] uppercase leading-none tracking-[.12em] text-dim" />
         </div>
 
-        {/* the honest caption, as a line of type rather than a card: the
-            panel is a globe and a robot, and a boxed box in the corner was
-            the third rectangle competing with them */}
-        <div className="absolute bottom-[62px] left-7 z-[2] max-w-[300px]">
-          <p className="text-[11px] leading-[1.6] text-cocoa">
-            Dots are the countries where tracked open-source organizations publish a
-            location on their public GitHub profile. The ring is the year: each month
-            carries the programs whose published phases overlap it.
-          </p>
-          <p className="mt-1.5 font-mono text-[9px] uppercase leading-[1.6] tracking-[.14em] text-dim">
-            {hasData
-              ? <>{fileData.countries} countries · {fileData.orgs} orgs located</>
-              : "Sample list · live atlas not loaded"}
+        {/* one line of instruction, because an interaction nobody knows about
+            is an interaction nobody uses */}
+        <div className="pointer-events-none absolute bottom-[26px] left-7 z-[2] max-w-[280px]">
+          <p className="font-mono text-[9px] uppercase leading-[1.6] tracking-[.14em] text-dim">
+            Hover a continent for the developers behind it
           </p>
         </div>
       </div>
