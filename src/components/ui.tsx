@@ -6,42 +6,60 @@ import { motion, useReducedMotion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
 import type { Level } from "../lib/types";
 
-export function Logo({ size = 30, draw = false, live = false }: { size?: number; draw?: boolean; live?: boolean }) {
-  /* The mark: an open ring - a branch that never closes - ending in the same
-     rotated square the header uses as its accent. Read it as a "c" or as a
-     commit at the end of someone's work; it is the one shape used everywhere
-     the brand has to fit, from the favicon up to the social card.
+/* Three arrows turned inward, one every 120 degrees, so the space they leave
+   between them is the mark's other half: a cube corner seen from above. It is
+   drawn with strokes rather than fills for one reason - a stroked path can
+   draw itself, which is what the header and the intro both do with it.
 
-     `draw` plays the mark being built: the ring strokes itself round, then the
-     commit drops onto the end of it. It is a load-once gesture on the header
-     and the whole subject of the intro curtain; reduced-motion visitors get
-     the finished mark, as everywhere else.
+   The colour is `currentColor` on two arms and the brand green on the third,
+   so the same component is correct on a cream page and on a near-black one
+   without a second variant. `tile` puts it on the dark rounded square used by
+   the favicon, the app icons and the social card, where the mark cannot borrow
+   the page's colour.
 
-     `live` adds the idle motion: a short light running the length of the ring
-     and out at the commit, which is the one thing the mark does while nothing
-     is happening to it. */
+   `draw` is the entrance: the three arms stroke themselves in turn while the
+   whole mark swings a third of a turn into place. `live` is the idle motion -
+   a slow, continuous rotation - and the inner group answers a hover with a
+   quarter of the same turn. Reduced-motion visitors get the finished, still
+   mark, as everywhere else on this site. */
+const ARMS = [0, 120, 240];
+const ARM_D = "M50 11 L50 38 L73 17";
+
+export function Logo({
+  size = 30,
+  draw = false,
+  live = false,
+  tile = false,
+}: {
+  size?: number;
+  draw?: boolean;
+  live?: boolean;
+  tile?: boolean;
+}) {
   const reduce = useReducedMotion();
   const anim = draw && !reduce;
   const easeSilk = [0.22, 1, 0.36, 1] as const;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className="mark-live">
-      <rect width="100" height="100" rx="26" fill="#0f1214" />
-      <motion.rect x="1.25" y="1.25" width="97.5" height="97.5" rx="24.75" fill="none" stroke="#ffffff" strokeOpacity=".09" strokeWidth="2.5"
-        initial={anim ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ duration: .4 }} />
-      <motion.path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke="#eceef0" strokeWidth="11" strokeLinecap="round"
-        initial={anim ? { pathLength: 0 } : false} animate={{ pathLength: 1 }}
-        transition={{ duration: .9, ease: easeSilk }} />
-      {live && !reduce && (
-        <path className="mark-run" d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke="#4ade80"
-          strokeWidth="11" strokeLinecap="round" pathLength={100} />
-      )}
-      {/* the commit sits on a group that framer owns for the entrance; the
-          hover turn is a CSS transition on the path inside it, so the two
-          never fight over one transform attribute */}
-      <motion.g initial={anim ? { opacity: 0, scale: .35 } : false} animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: .66, duration: .46, ease: [0.34, 1.56, 0.64, 1] }}
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true"
+      className={live && !reduce ? "mark-live" : undefined}>
+      {tile && <rect width="100" height="100" rx="26" fill="#0f1214" />}
+      <motion.g
+        initial={anim ? { rotate: -120, scale: 0.86 } : false}
+        animate={{ rotate: 0, scale: 1 }}
+        transition={{ duration: 1.05, ease: easeSilk }}
         style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-        <path className="mark-commit" d="M68 22.8 79.2 34 68 45.2 56.8 34Z" fill="#4ade80" />
+        <g className="mark-turn" fill="none" strokeWidth="13" strokeLinejoin="round"
+          style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
+          {ARMS.map((deg, i) => (
+            <motion.path key={deg} d={ARM_D} stroke="currentColor"
+              className={i === 2 ? "text-accent" : undefined}
+              transform={`rotate(${deg} 50 50)`}
+              initial={anim ? { pathLength: 0 } : false}
+              animate={{ pathLength: 1 }}
+              transition={{ delay: 0.1 + i * 0.16, duration: 0.52, ease: easeSilk }}
+            />
+          ))}
+        </g>
       </motion.g>
     </svg>
   );

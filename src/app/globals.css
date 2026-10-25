@@ -547,27 +547,18 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
   will-change: transform;
 }
 
-/* the header mark: the commit turns a quarter on hover, the way the ring's
-   open end closes a little when you reach it. Entrance is framer-motion's. */
-.mark-commit {
-  transform-box: fill-box; transform-origin: center;
-  transition: transform .55s var(--ease-silk);
-}
-a:hover .mark-commit, button:hover .mark-commit { transform: rotate(90deg); }
-
-/* the idle light: a short dash running the ring from its open end up to the
-   commit. pathLength is normalised to 100 on the element, so the dash maths
-   here is in percent of the ring rather than in user units. */
-.mark-run { animation: markRun 3.6s cubic-bezier(.55, 0, .45, 1) infinite; }
-@keyframes markRun {
-  0%      { stroke-dasharray: 0 100; stroke-dashoffset: 0;   opacity: 0; }
-  10%     { stroke-dasharray: 16 84; stroke-dashoffset: -4;  opacity: .9; }
-  55%     { stroke-dasharray: 16 84; stroke-dashoffset: -60; opacity: .9; }
-  78%,100%{ stroke-dasharray: 0 100; stroke-dashoffset: -84; opacity: 0; }
-}
+/* the header mark: the whole figure turns slowly while the page is open - the
+   one thing it does when nothing is happening to it - and the inner group
+   answers a hover with a third of a turn, which is exactly the spacing between
+   two arms, so it looks like the next arrow has taken the front. Entrance and
+   the arm-drawing are framer-motion's, in Logo(). */
+.mark-live { animation: markSpin 26s linear infinite; }
+@keyframes markSpin { to { transform: rotate(360deg); } }
+.mark-turn { transition: transform .6s var(--ease-silk); }
+a:hover .mark-turn, button:hover .mark-turn { transform: rotate(120deg); }
 @media (prefers-reduced-motion: reduce) {
-  .mark-commit { transition: none; }
-  .mark-run { animation: none; }
+  .mark-live { animation: none; }
+  .mark-turn { transition: none; }
 }
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

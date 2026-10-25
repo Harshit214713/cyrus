@@ -22,6 +22,13 @@ const ACCENT = "#4ade80";
 const EMBER = "#86efac";
 const RUST = "#7ee7a4";
 const FOAM = "#eceef0";
+/* the mark's own plate - the same near-black the favicon tile uses. It is NOT
+   PAPER: the card is dark, so a tile that borrows the page colour disappears,
+   and ink-coloured arms on an ink-coloured tile disappear with it. */
+const TILE = "#0f1214";
+/* the brand mark, three arrows turned inward - the same figure Logo() draws */
+const OG_ARM_D = "M50 11 50 38 73 17";
+const OG_ARMS = [0, 120, 240];
 
 const FONT_DIR = join(process.cwd(), "public", "assets", "fonts");
 let cached: { regular: ArrayBuffer; display: ArrayBuffer } | null = null;
@@ -82,10 +89,11 @@ function Stamp() {
       }}
     >
       <svg width={520} height={520} viewBox="0 0 100 100">
-        <path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke={ARC} strokeWidth="11" strokeLinecap="round" />
-        <path d="M68 22.8 79.2 34 68 45.2 56.8 34Z"
-          fill={EMBER}
-        />
+        <g fill="none" strokeWidth="13" strokeLinejoin="round">
+          {OG_ARMS.map((deg, i) => (
+            <path key={deg} d={OG_ARM_D} stroke={i === 2 ? EMBER : ARC} transform={`rotate(${deg} 50 50)`} />
+          ))}
+        </g>
       </svg>
     </div>
   );
@@ -95,11 +103,12 @@ function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
-        <rect width="100" height="100" rx="26" fill={INK} />
-        <path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke={FOAM} strokeWidth="11" strokeLinecap="round" />
-        <path d="M68 22.8 79.2 34 68 45.2 56.8 34Z"
-          fill={EMBER}
-        />
+        <rect width="100" height="100" rx="26" fill={TILE} />
+        <g fill="none" strokeWidth="13" strokeLinejoin="round">
+          {OG_ARMS.map((deg, i) => (
+            <path key={deg} d={OG_ARM_D} stroke={i === 2 ? EMBER : FOAM} transform={`rotate(${deg} 50 50)`} />
+          ))}
+        </g>
       </svg>
       <span style={{ fontSize: 33, fontWeight: 800, color: INK, letterSpacing: -0.8 }}>cyrus.ai</span>
     </div>

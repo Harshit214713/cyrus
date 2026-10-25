@@ -76,10 +76,20 @@ function Splash({ app }: { app: boolean }) {
           initial={{ y: 0 }} animate={{ y: lift ? "-100%" : 0 }}
           transition={{ duration: .62, ease: EASE_LIFT }}>
           <div className="flex flex-col items-center gap-4">
-            <motion.div initial={{ opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: .5, ease: EASE_SILK }}>
-              <Logo size={92} draw />
-            </motion.div>
+            {/* the mark draws its three arms and swings a third of a turn into
+                place on its own (Logo's `draw`); the halo is the intro's own
+                gesture - one ring expanding out from where it lands */}
+            <div className="relative grid place-items-center">
+              <motion.span className="absolute rounded-full border border-accent"
+                initial={{ width: 78, height: 78, opacity: 0.5 }}
+                animate={{ width: 190, height: 190, opacity: 0 }}
+                transition={{ delay: 0.35, duration: 1.15, ease: EASE_SILK }}
+              />
+              <motion.div initial={{ opacity: 0, scale: 0.72 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: .7, ease: EASE_SILK }}>
+                <Logo size={92} draw />
+              </motion.div>
+            </div>
             <motion.div className="flex font-display font-extrabold tracking-[-.03em] text-[38px] leading-none"
               variants={wordParent} initial="hidden" animate="on">
               {WORD.split("").map((ch, i) => (
