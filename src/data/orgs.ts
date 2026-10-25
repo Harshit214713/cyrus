@@ -22,7 +22,7 @@ export const PROGRAMS: Program[] = [
     tag: "Paid remote internships in open source for people from under-represented groups.",
     pay: "$8,000 USD", payNote: "PER INTERNSHIP",
     status: "upcoming", window: "Dec cohort pairing opens Nov",
-    orgs: "61 communities archived", slots: "437 internships 2022-2026",
+    orgs: "179 communities archived", slots: "437 internships 2022-2026",
     phases: [
       { label: "Outreach period", s: 10.2, e: 11.2, c: "#3b6ea5" },
       { label: "Applications", s: 1.6, e: 3.1, c: "#a97b1f" },
@@ -36,7 +36,7 @@ export const PROGRAMS: Program[] = [
     tag: "Cloud & ecosystem mentored projects across Linux Foundation host projects.",
     pay: "$1,500 – $3,000", payNote: "PER TERM",
     status: "live", window: "Term 3 running now · Sep – Nov",
-    orgs: "24 orgs archived", slots: "941 projects 2022-2026",
+    orgs: "47 host projects", slots: "1,303 projects 2019-2026",
     phases: [
       { label: "Term 1", s: 2, e: 5, c: "#3b6ea5" },
       { label: "Term 2", s: 5, e: 8, c: "#2f7d72" },
@@ -62,7 +62,7 @@ export const PROGRAMS: Program[] = [
     tag: "A remote, batch-based alternative to internships on real open-source teams.",
     pay: "Paid tracks", payNote: "UP TO $2K/MO",
     status: "live", window: "Fall batch in session",
-    orgs: "No published roster", slots: "Small cohorts",
+    orgs: "120 upstream orgs", slots: "198 forked repositories",
     phases: [
       { label: "Spring batch", s: 2.5, e: 5, c: "#3b6ea5" },
       { label: "Summer batch", s: 5.3, e: 7.8, c: "#2f7d72" },
@@ -75,7 +75,7 @@ export const PROGRAMS: Program[] = [
     tag: "Three-month open-source contribution sprint, biggest women-led program in India.",
     pay: "Leaderboard prizes", payNote: "SWAG + CERTS",
     status: "live", window: "Contributions Aug – Nov",
-    orgs: "No published roster", slots: "Open to all",
+    orgs: "420 project orgs", slots: "423 projects in the 2026 board",
     phases: [
       { label: "Registration", s: 6.3, e: 7.4, c: "#3b6ea5" },
       { label: "Contribution period", s: 7.4, e: 10.6, c: "#a97b1f", active: true },
@@ -88,7 +88,7 @@ export const PROGRAMS: Program[] = [
     tag: "Winter mentoring program for KDE - design, code, docs, and community work.",
     pay: "€300 – €1,000", payNote: "PRIZES",
     status: "upcoming", window: "Registrations open December",
-    orgs: "KDE ecosystem", slots: "Global",
+    orgs: "42 KDE project areas", slots: "87 ideas 2017-2026",
     phases: [
       { label: "Ideas list", s: 9.4, e: 10.6, c: "#3b6ea5" },
       { label: "Registration", s: 11, e: 12, c: "#a97b1f" },
@@ -144,7 +144,7 @@ export const PROGRAMS: Program[] = [
     tag: "One pull request a day through December, given back to the projects you use.",
     pay: "No prize", payNote: "GIFT TO MAINTAINERS",
     status: "upcoming", window: "Runs 1 - 24 December",
-    orgs: "Any GitHub project", slots: "Open to all",
+    orgs: "10,080 listed orgs", slots: "306 wishlist repos",
     phases: [
       { label: "Nominations & prep", s: 10.5, e: 11, c: "#2f7d72" },
       { label: "Contribution drive", s: 11, e: 12, c: "#3e7d4f" },

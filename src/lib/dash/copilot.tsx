@@ -15,8 +15,8 @@ import { Link } from "@/lib/router";
 import { REPOS } from "../../data/repos";
 import { ORGS, PROGRAMS } from "../../data/orgs";
 import { programsOf } from "../../data/programAssoc";
-import { loadRoster } from "../programRoster";
-import type { RosterFile } from "../programRoster";
+import { loadRosterOrgs, useRosterIndex, rosterUnit } from "../programRoster";
+import type { RosterOrg } from "../programRoster";
 import { CRAWL } from "../../data/crawlStats";
 import type { Repo } from "../types";
 import { avatarOf, fmt } from "../util";
@@ -195,14 +195,20 @@ export function CoPilotSection({ d }: { d: Dash }) {
   const [program, setProgram] = useState("all");
   const [beginner, setBeginner] = useState<boolean | null>(null);
   const [minStars, setMinStars] = useState(0);
-  const [file, setFile] = useState<RosterFile | null>(null);
+  const [rosterRows, setRosterRows] = useState<RosterOrg[]>([]);
+  const rst = useRosterIndex();
   const [live, setLive] = useState<Live>(NO_LIVE);
 
   const catalogSkills = useMemo(() => [...ALL_SKILLS, ...extra], [extra]);
   const byId = useMemo(() => new Map(catalogSkills.map((s) => [s.id, s])), [catalogSkills]);
   const skills = useMemo(() => picked.map((p) => byId.get(p)).filter((x): x is Skill => !!x), [picked, byId]);
 
-  useEffect(() => { loadRoster().then(setFile); }, []);
+  useEffect(() => {
+    if (program === "all") { setRosterRows([]); return; }
+    let go = true;
+    loadRosterOrgs(program).then((rows) => { if (go) setRosterRows(rows); });
+    return () => { go = false; };
+  }, [program]);
 
   const beginnerOn = beginner ?? level === "first";
   const showOrgs = goal !== "issues";
@@ -233,11 +239,10 @@ export function CoPilotSection({ d }: { d: Dash }) {
   }, [skills, minStars]);
 
   /* ── organizations ──────────────────────────────────────────────── */
-  const roster = program === "all" ? null : file?.programs?.[program];
   const orgHits = useMemo(() => {
     if (!skills.length) return [];
     const rn = new Map<string, number>();
-    if (roster) for (const o of roster.orgs) rn.set(nnm(o.name), o.n);
+    if (program !== "all") for (const o of rosterRows) rn.set(nnm(o.name), o.n);
     return ORGS
       .map((o) => {
         const langs = skills.filter((k) => k.langs.some((l) => o.tags.includes(l)));
@@ -252,14 +257,14 @@ export function CoPilotSection({ d }: { d: Dash }) {
       .filter((x) => x.score > 0 && x.o.stars >= minStars)
       .sort((a, b) => b.score - a.score || b.o.stars - a.o.stars)
       .slice(0, 6);
-  }, [skills, roster, program, minStars]);
+  }, [skills, rosterRows, program, minStars]);
 
   /* the same program record, read as participants rather than profiles */
   const alsoIn = useMemo(() => {
-    if (!roster) return [];
+    if (program === "all" || !rosterRows.length) return [];
     const shown = new Set(orgHits.map((x) => nnm(x.o.name)).concat(orgHits.map((x) => nnm(x.o.login))));
-    return roster.orgs.filter((o) => !shown.has(nnm(o.name))).slice(0, 8);
-  }, [roster, orgHits]);
+    return rosterRows.filter((o) => !shown.has(nnm(o.name))).slice(0, 8);
+  }, [rosterRows, program, orgHits]);
 
   /* ── live issues, straight from the crawl snapshot ──────────────── */
   const langsSel = useMemo(() => [...new Set(skills.flatMap((s) => s.langs))].slice(0, 6), [skills]);
@@ -405,8 +410,8 @@ export function CoPilotSection({ d }: { d: Dash }) {
             <p className="text-[12.5px] text-dim mt-2 leading-[1.6]">
               {program === "all"
                 ? "No filter: organizations are ranked purely on the languages and repositories they match."
-                : roster
-                  ? `The record for ${PROGRAMS.find((p) => p.id === program)?.name} names ${roster.orgs.length.toLocaleString()} organizations from ${roster.projects.toLocaleString()} accepted projects (${roster.years[0]}-${roster.years[roster.years.length - 1]}). Only profiles we hold live GitHub numbers for get a language reason.`
+                : rst.byId[program]
+                  ? `The record for ${PROGRAMS.find((p) => p.id === program)?.name} names ${fmt(rst.byId[program].orgs)} organizations and ${fmt(rst.byId[program].projects)} ${rosterUnit(program, rst.byId[program].source)}. Only profiles we hold live GitHub numbers for get a language reason.`
                   : `${PROGRAMS.find((p) => p.id === program)?.name} publishes no participant list, so this filter can only use the organizations whose own repositories advertise it. The program page says so too.`}
             </p>
           </div>

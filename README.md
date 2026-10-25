@@ -5,7 +5,7 @@
 <h1 align="center">cyrus.ai</h1>
 
 <p align="center">
-  <b>The developer-program platform.</b> 1,528 AI-agent repos, 13,539 open-source program projects and 40,017 real open issues - one warm, fast, self-refreshing catalog on Next.js 16 with <b>real OAuth sign-in</b> and a <b>full server backend on Neon Postgres</b>.
+  <b>The developer-program platform.</b> 1,528 AI-agent repos, 6,682 archived program projects behind a 14,912-project, 11,265-organization participation roster, and 40,017 real open issues - one warm, fast, self-refreshing catalog on Next.js 16 with <b>real OAuth sign-in</b> and a <b>full server backend on Neon Postgres</b>.
 </p>
 
 <p align="center">
@@ -45,7 +45,9 @@
 > **Works like a product, ships like a static site.**
 
 - **One catalog for the whole agent boom** - skills, Cursor rules, AGENTS.md files, MCP servers and dev agents: all 1,528 of them, filterable, with their real GitHub stats, downloadable as JSON.
-- **Programs, not guesswork** - 6,682 mentored open-source projects (5,238 GSoC 2022-2026, plus 941 LFX, 437 Outreachy and 66 Summer of Bitcoin) across 402 organizations with thousands of tech tags, plus a page of its own for each of the 13 tracked programs (GSoC, GSSoC, LFX, Outreachy, Eclipse SoC, MLH, Season of KDE, Hacktoberfest, Summer of Bitcoin, Nexus Spring of Code, 24 Pull Requests, FOSSEE Summer Fellowship, Vercel Open Source Program) with their calendars, pay bands and the organizations that took part.
+- **Programs, not guesswork** - a browsable archive of 6,682 mentored open-source projects (5,238 GSoC 2022-2026, plus 941 LFX, 437 Outreachy and 66 Summer of Bitcoin) across 402 organizations with 3,932 tech tags, plus a page of its own for each of the 13 tracked programs (GSoC, GSSoC, LFX, Outreachy, Eclipse SoC, MLH, Season of KDE, Hacktoberfest, Summer of Bitcoin, Nexus Spring of Code, 24 Pull Requests, FOSSEE Summer Fellowship, Vercel Open Source Program) with their calendars, pay bands and the organizations that took part.
+- **The whole participation record** - behind those pages sits a 14,912-project roster of 11,439 organization rows covering 11,265 distinct organizations across the eight programs that publish a record we can read: 519 GSoC organizations over the full 2016-2026 mirror, 10,080 organizations on the 24 Pull Requests list, 420 repository owners on the GSSoC'26 board, 179 Outreachy communities, 120 upstreams behind the MLH Fellowship forks, 47 Linux Foundation host projects, 42 KDE areas and 32 Summer of Bitcoin organizations. 126 organizations appear in more than one program, and each page names the overlaps it shares rather than hiding them. Five programs publish no participant list at all, and those pages say so instead of inventing one.
+- **Named mentors, not advertised ones** - 4,917 mentors across 5,234 GSoC projects, 982 distinct names on the LFX record (1,279 of the platform's 1,769 registered mentor profiles list a project), 198 on the GSSoC board, 44 Summer of Bitcoin and 29 Season of KDE mentors. Outreachy prints no mentor name anywhere in its archive, and that page says that too.
 - **40,017 real open issues** - the Issue Finder crawls good-first-issue and help-wanted labels across the catalog with GitHub Search API, then filters by language, label, size and how recently each repo merged a PR.
 - **Follow the money** - the Sponsors directory reads `.github/FUNDING.yml` from the top 260 catalog repos by stars and lists the 82 that actually take funding, with the right link to fund each one.
 - **Proof over promises** - the PR Leaderboard ranks contributors from merged pull requests on real repos, not self-reported points.
@@ -80,7 +82,7 @@ Every shot below is the live site, captured at 1440px in the light theme.
     <td><img src="docs/readme/shots/sponsors.png" alt="Sponsors directory" width="100%"/></td>
   </tr>
   <tr>
-    <td align="center"><b>Organization intel</b> - 43 real GitHub orgs with live stats and GSoC / LFX / MLH badges</td>
+    <td align="center"><b>Organization intel</b> - 393 real GitHub orgs with live stats and GSoC / LFX / MLH badges</td>
     <td align="center"><b>Sponsors directory</b> - the 82 catalog repos that take funding, straight from their FUNDING.yml</td>
   </tr>
   <tr>
@@ -97,7 +99,7 @@ Every shot below is the live site, captured at 1440px in the light theme.
   </tr>
   <tr>
     <td align="center"><b>Dashboard tools</b> - the co-pilot matcher shortlisting repos and live issues</td>
-    <td align="center"><b>Project archive</b> - 13,539 mentored projects, filter by year, org and tech</td>
+    <td align="center"><b>Project archive</b> - 6,682 mentored projects, filter by year, org and tech</td>
   </tr>
   <tr>
     <td><img src="docs/readme/shots/platform-features.png" alt="Platform features" width="100%"/></td>
@@ -116,11 +118,14 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 | Section | Size | Source of truth |
 |---|---:|---|
 | Agent-skills catalog | **1,528 repos** · 33.79M stars · 4.61M forks | GitHub REST via `gh api` |
-| Open-source programs | **13,539 projects** · 616 orgs · 3,075 tags | GSoC archive (2016-2026, 12,095) + other programs (LFX 941 / Outreachy 437 / Summer of Bitcoin 66) |
+| Program archive (browsable) | **6,682 projects** · 402 orgs · 3,932 tags | `public/data/gsoc-projects.json` (5,238, 2022-2026) + `otherProjects.json` (LFX 941 / Outreachy 437 / Summer of Bitcoin 66) |
+| Participation roster | **14,912 projects** · 11,439 org rows · 11,265 distinct orgs · 126 shared | `scripts/build-program-roster.mjs` over the 8 programs that publish a record, including the all-time GSoC mirror (12,095 across 519 orgs) |
+| Named mentors | **6,170** across five programs | `scripts/build-mentor-index.mjs` - GSoC 4,917 · LFX 982 · GSSoC 198 · SoB 44 · Season of KDE 29 |
+| Linux Foundation member directory | **4,495 organizations** across 167 foundations | `lf-orgs.json` - the population the "almost 800 LFX orgs" figure is usually confused with |
 | Good-first issues board | **40,017 open issues** across the catalog | GitHub Search API via `scripts/build-issue-index.mjs` |
 | Sponsors directory | **82 funded repos**, found in the top 260 by stars | `.github/FUNDING.yml`, read repo by repo |
 | Program deep dives | **13** full program pages, each with its own organization roster | `src/data/programDetails.ts` |
-| Organization intel | **43** live org profiles | `scripts/fetch-orgs.mjs` |
+| Organization intel | **393** live org profiles | `scripts/fetch-orgs.mjs` |
 | Dashboard tools | 12 screens - overview, issues, repos, season calendar, demand radar, repo analyser, draft studio, matcher, mentors, compare, git-start, settings | the datasets above, in the browser |
 | Routes | **21** page routes + 13 API handlers | `src/app/` (App Router) |
 
@@ -163,10 +168,10 @@ Dark mode is one click away in the header - the same warm palette, roasted.
 |---|---|
 | `/` | Warm editorial home: interactive hero, programs, contribution timeline, org marquee, skills, stories, FAQ |
 | `/issues` | Good-first-issue finder over 40,017 real open issues - labels, languages, orgs, difficulty |
-| `/organizations` · `/organizations/:login` | 43 real GitHub orgs with live stats and GSoC / LFX / MLH program badges |
+| `/organizations` · `/organizations/:login` | 393 real GitHub orgs with live stats and GSoC / LFX / MLH program badges, plus the rest of the 11,265-organization roster |
 | `/leaderboard` | Real contributor rankings from merged pull requests |
-| `/projects` | The 13,539-project mentored-program archive (2016-2026 for GSoC, 2022-2026 for the rest), filter by year / org / tech |
-| `/programs` · `/programs/:id` | 13 funded programs - calendars, pay bands, who they are for, and their project archives |
+| `/projects` | The 6,682-project mentored-program archive (2022-2026), filter by year / org / tech |
+| `/programs` · `/programs/:id` | 13 funded programs - calendars, pay bands, who they are for, their full organization roster with overlaps, named mentors, and the project archive |
 | `/skills` | The 1,528-repo agent-skills catalog, filterable and downloadable |
 | `/sponsors` | 82 catalog repos that actually take funding, read from their FUNDING.yml |
 | `/dashboard` | Signed-in home - saved issues, tracked repos, and the setup checklist |

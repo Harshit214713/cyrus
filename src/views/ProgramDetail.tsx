@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "@/lib/router";
 import { PROGRAMS } from "../data/orgs";
-import { TOPIC_ID_OF, useRoster, ARCHIVE_IDS } from "../lib/programRoster";
-import { useMentors } from "../lib/mentorIndex";
+import { TOPIC_ID_OF, useRoster, useRosterIndex, useLfDirectory, ARCHIVE_IDS, rosterUnit } from "../lib/programRoster";
+import { useMentors, MENTOR_IDS } from "../lib/mentorIndex";
 import { PROGRAM_META, PROGRAM_REPOS } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
 import { PROGRAM_DETAILS, programLink } from "../data/programDetails";
@@ -83,6 +83,11 @@ const MetaRow = ({ k, v }: { k: string; v: string }) => (
 
 const PAGE = 60;
 
+const EVIDENCE_BADGE: Record<string, string> = {
+  archive: "from the project archive", api: "from the program's own open API",
+  listing: "from the published participant list", topics: "from GitHub topics on their repositories",
+};
+
 /* ── every organization that took part, from the real record ── */
 function RosterSection({ id, topicId, name }: { id: string; topicId?: string; name: string }) {
   const r = useRoster(id, topicId);
@@ -99,7 +104,7 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
     return (
       <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
         <h2 className="panel-h text-[17px]">Organizations</h2>
-        <p className="text-cocoa text-[13px] mt-2">Loading the participation record…</p>
+        <p className="text-cocoa text-[13px] mt-2">Loading the participation record...</p>
       </section>
     );
   }
@@ -117,7 +122,8 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
     );
   }
 
-  const fromArchive = r.source === "archive";
+  const unit = rosterUnit(id, r.source);
+  const ment = r.meta?.mentors;
   return (
     <section>
       <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
@@ -126,15 +132,45 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
             Every organization in <Word>{name}</Word>
           </h2>
           <p className="text-cocoa text-[12.5px] mt-1">
-            {r.orgs.length.toLocaleString()} organizations · {fmt(r.projects)}{" "}
-            {fromArchive ? "accepted projects" : "tracked repositories"}
-            {fromArchive && r.years.length > 1 ? <> · {r.years[0]}-{r.years[r.years.length - 1]}</> : null}
+            {r.orgs.length.toLocaleString()} organizations · {fmt(r.projects)} {unit}
+            {r.years.length > 1 ? <> · {r.years[0]}-{r.years[r.years.length - 1]}</> : null}
+            {ment?.onProjects ? <><br />{fmt(ment.onProjects)} mentor names on those records</> : null}
+            {ment?.listed ? <><br />{fmt(ment.listed)} mentors named by {name}{ment.capped ? " (their directory caps there)" : ""}</> : null}
           </p>
         </div>
         <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
-          {fromArchive ? `from the project archive · ${r.generated}` : "from GitHub topics on their repositories"}
+          {EVIDENCE_BADGE[r.source] ?? "from the record"}{r.generated ? ` · ${r.generated}` : ""}
         </span>
       </div>
+
+      {r.meta?.note && (
+        <p className="text-cocoa text-[11.5px] leading-[1.6] mb-4 max-w-[860px]">
+          {r.meta.note} <span className="text-dim">Source: {r.meta.source}.</span>
+        </p>
+      )}
+
+      {r.overlaps.length > 0 && (
+        <div className="bg-cream border border-line rounded-[16px] p-4 mb-4">
+          <b className="block font-mono text-[9.5px] uppercase tracking-[.14em] text-dim mb-2.5">
+            Organizations this list shares with the other programs here
+          </b>
+          <div className="flex flex-wrap gap-1.5">
+            {r.overlaps.map((x) => (
+              <span key={x.other} title={x.examples.join(", ")}
+                className="flex items-center gap-1.5 font-mono text-[10.5px] rounded-full border border-line bg-card px-2.5 py-[6px] text-cocoa">
+                {x.label}
+                <b className="text-accent font-bold">{fmt(x.mine)}</b>
+                <span className="text-dim">{x.pctMine}% of this list</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-dim text-[11px] leading-[1.6] mt-2.5">
+            Matched on name, on the GitHub organization behind a project URL, and on the loose form of a
+            name with "Foundation", "Inc" and similar suffixes stripped - so it is a floor, not a ceiling.
+            Hover any chip for the names we actually matched.
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center gap-2.5 mb-4">
         <input value={q} onChange={(e) => { setQ(e.target.value); setShown(PAGE); }} placeholder="Search these organizations"
@@ -154,7 +190,9 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
               </span>
               <span className="flex items-center gap-2 mt-2 font-mono text-[9.5px] text-dim">
                 <b className="text-accent font-bold">{fmt(o.n)}</b>
-                {fromArchive ? (o.years.length > 1 ? `projects · ${o.years.length} years` : "projects") : "repos with the topic"}
+                {r.source === "topics" ? "repos with the topic"
+                  : o.n === 0 ? "listed as a participant"
+                  : o.years.length > 1 ? `${unit} · ${o.years.length} years` : unit}
                 {o.category && <span className="truncate">· {o.category}</span>}
               </span>
             </>
@@ -175,6 +213,68 @@ function RosterSection({ id, topicId, name }: { id: string; topicId?: string; na
     </section>
   );
 }
+
+/* ── the Linux Foundation member directory, next to the LFX mentorship roster ──
+   The user asked for "around 800 LFX organizations". That number is real, but it
+   is not the mentorship roster: it is member organizations of the LF family, and
+   CNCF's own 2025 annual report says "almost 800 member organizations". The
+   gateway gives us 4,495 distinct companies across 167 foundations, 699 of them
+   CNCF. Both figures belong on this page, labelled for what they are. */
+function LfBand() {
+  const lf = useLfDirectory();
+  const idx = useRosterIndex();
+  if (!lf) return null;
+  const lfxProjects = idx.byId.lfx?.projects ?? 1303;
+  const founds = Object.entries(lf.foundations).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  return (
+    <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-1">
+        <h2 className="panel-h text-[17px]">The <Word>800</Word> figure, and where it comes from</h2>
+        <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
+          LF open gateway · {lf.generated}
+        </span>
+      </div>
+      <p className="text-cocoa text-[12.5px] leading-[1.65] mb-5 max-w-[900px]">
+        {lf.cncfNote} LFX Mentorship itself is much narrower: {fmt(lfxProjects)} mentored projects hosted by 47
+        Linux Foundation projects, which is the list above. The gateway behind these numbers carries{" "}
+        {fmt(lf.projectTotal)} hosted projects and {fmt(lf.memberOrgs)} member companies - membership is the wider
+        circle, the companies that fund and govern the foundations rather than the hosts that ran a mentorship.
+      </p>
+      <div className="grid grid-cols-4 gap-x-5 gap-y-4 max-[820px]:grid-cols-2 mb-5">
+        {[
+          [fmt(lf.memberOrgs), "distinct member organizations"],
+          [String(Object.keys(lf.foundations).length), "foundations in the gateway"],
+          [fmt(lf.multiFoundation), "in more than one foundation"],
+          [founds[0] ? fmt(founds[0][1]) : "-", `${founds[0]?.[0] ?? ""} members`],
+        ].map(([v, k]) => (
+          <div key={k}>
+            <b className="font-display font-extrabold text-[25px] tracking-[-.02em] leading-none block">{v}</b>
+            <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim">{k}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {founds.map(([slug, n]) => (
+          <span key={slug} className="font-mono text-[10.5px] rounded-full border border-line bg-cream px-2.5 py-[6px] text-cocoa">
+            {slug}<b className="text-accent font-bold ml-1">{fmt(n)}</b>
+          </span>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2 max-[760px]:grid-cols-1">
+        {lf.top.slice(0, 10).map((o) => (
+          <a key={o.name} href={`https://${o.website}`} target="_blank" rel="noopener"
+            className="flex items-center gap-2.5 bg-cream border border-line rounded-[12px] px-3 py-2 hover:border-accent/40 transition-colors">
+            <OrgImg src={avatarOf(o.name, 64)} name={o.name} className="w-[22px] h-[22px] rounded-[7px] object-cover bg-clay shrink-0" />
+            <b className="text-[12.5px] font-semibold truncate">{o.name}</b>
+            <span className="ml-auto font-mono text-[10px] text-dim shrink-0">{o.foundations} foundations</span>
+          </a>
+        ))}
+      </div>
+      <p className="text-dim text-[11px] leading-[1.6] mt-3">{lf.note}</p>
+    </section>
+  );
+}
+
 
 
 /* ── the organizer's own headline totals, quoted rather than computed ──
@@ -217,7 +317,7 @@ function PublishedBand({ id }: { id: string }) {
   );
 }
 
-/* ── the mentors named on the archived project records ── */
+/* ── the mentors named on the program's own record ── */
 function MentorSection({ id }: { id: string }) {
   const m = useMentors(id);
   const [shown, setShown] = useState(12);
@@ -237,17 +337,26 @@ function MentorSection({ id }: { id: string }) {
   }
 
   const t = m.program;
+  const dir = t.directory;
   return (
     <section>
       <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
         <div>
           <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
-            Mentors named in the <Word>archive</Word>
+            Mentors named in the <Word>record</Word>
           </h2>
           <p className="text-cocoa text-[12.5px] mt-1">
-            {fmt(t.mentors)} distinct names across {fmt(t.projectsWithMentors)} archived {t.label} projects
+            {fmt(t.mentors)} distinct names
+            {t.projectsWithMentors ? <> across {fmt(t.projectsWithMentors)} archived {t.label} projects</> : <>{t.note ? "" : ""}</>}
             {t.years?.length ? <> · {t.years[0]}-{t.years[t.years.length - 1]}</> : null}
+            {t.participants ? <> · {fmt(t.participants)} contributors on the organizer's leaderboard</> : null}
           </p>
+          {dir && (
+            <p className="text-cocoa text-[12.5px] mt-1">
+              The platform itself holds {fmt(dir.registered)} mentor sign-ups, {fmt(dir.nameable)} with a
+              display name and {fmt(dir.withProjects)} listing at least one project or graduate.
+            </p>
+          )}
         </div>
         <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
           from the project records · {m.generated}
@@ -263,10 +372,14 @@ function MentorSection({ id }: { id: string }) {
             <span className="min-w-0 flex-1">
               <b className="text-[13px] font-semibold block truncate">{p.name}</b>
               <span className="font-mono text-[9.5px] text-dim block truncate">
-                {p.orgCount} org{p.orgCount === 1 ? "" : "s"} · {p.years.length ? p.years.join(" ") : "years not recorded"}
+                {p.login ? `@${p.login}`
+                  : p.orgCount ? `${p.orgCount} org${p.orgCount === 1 ? "" : "s"}`
+                  : p.skills?.length ? p.skills.slice(0, 3).join(" ")
+                  : "years not recorded"}
+                {p.years.length ? ` · ${p.years.join(" ")}` : ""}
               </span>
             </span>
-            <b className="font-mono text-[11px] text-accent font-bold shrink-0">{p.projects}</b>
+            {p.projects > 0 && <b className="font-mono text-[11px] text-accent font-bold shrink-0">{p.projects}</b>}
           </div>
         ))}
       </div>
@@ -276,10 +389,16 @@ function MentorSection({ id }: { id: string }) {
           Show more mentors · {fmt(t.top.length - shown)} left
         </button>
       )}
-      <p className="text-cocoa text-[11.5px] leading-[1.6] mt-4">{m.note}</p>
+      {(t.note || m.note) && (
+        <p className="text-cocoa text-[11.5px] leading-[1.6] mt-4">
+          {t.note} {t.capped ? "This is what the API will name, not the program's total." : ""}
+          {!t.note && m.note ? m.note : ""}
+        </p>
+      )}
     </section>
   );
 }
+
 
 export default function ProgramDetail() {
   const { id } = useParams();
@@ -418,9 +537,11 @@ export default function ProgramDetail() {
 
           <PublishedBand id={p.id} />
 
-          {(ARCHIVE_IDS as readonly string[]).includes(p.id) && <MentorSection id={p.id} />}
+          {(ARCHIVE_IDS as readonly string[]).includes(p.id) || (MENTOR_IDS as readonly string[]).includes(p.id) ? <MentorSection id={p.id} /> : null}
 
           <RosterSection id={p.id} topicId={TOPIC_ID_OF[p.id]} name={p.name} />
+
+          {p.id === "lfx" && <LfBand />}
 
           {shelf.length > 0 && (            <section>
               <div className="flex items-end justify-between gap-4 flex-wrap mb-4">

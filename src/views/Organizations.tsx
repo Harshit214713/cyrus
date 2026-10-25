@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "@/lib/router";
 import { ORGS, PROGRAMS } from "../data/orgs";
 import { programsOf, assocNote } from "../data/programAssoc";
 import { ROSTER, ROSTER_LABEL, ROSTER_STATS } from "../data/rosterOrgs";
+import { useRosterIndex } from "../lib/programRoster";
 import { avatarOf, byStars, fmt } from "../lib/util";
 import type { Org } from "../lib/types";
 import { useStore } from "../lib/store";
@@ -106,6 +107,7 @@ const BAND = 40;
 function RosterBand() {
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(BAND);
+  const idx = useRosterIndex();
   const profiles = useMemo(() => new Set(ORGS.map((o) => o.login.toLowerCase())), []);
   const rest = useMemo(() => ROSTER.filter((r) => !r.login || !profiles.has(r.login.toLowerCase())), [profiles]);
   const hits = useMemo(() => {
@@ -152,10 +154,14 @@ function RosterBand() {
             </h2>
             <p className="text-cocoa text-[13px] leading-[1.6] mt-1.5 max-w-[720px]">
               {fmt(ROSTER_STATS.orgs)} organizations ran a mentored project, across{" "}
-              {fmt(ROSTER_STATS.projects)} accepted projects in the four archives that publish one.{" "}
+              {fmt(ROSTER_STATS.projects)} accepted projects in the four archives that publish one - Google Summer
+              of Code 2016-2026, LFX, Outreachy and Summer of Bitcoin 2022-2026.{" "}
               {fmt(ROSTER_STATS.withGithub)} have a GitHub account we could confirm and {ORGS.length} of those
               are profiled above; the {fmt(rest.length)} here are the remainder, shown exactly as their program
-              recorded them.
+              recorded them. The wider participation roster - {idx?.totals ? fmt(idx.totals.distinctOrgs) : "several thousand"}{" "}
+              distinct organizations across the {idx?.totals ? idx.totals.programs : "eight"} programs that publish
+              any record, including 24 Pull Requests and the GSSoC board - is listed on each{" "}
+              <Link to="/programs" className="text-accent hover:underline">program page</Link>.
             </p>
           </div>
           <input value={q} onChange={(e) => { setQ(e.target.value); setShown(BAND); }}

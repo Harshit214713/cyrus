@@ -1,12 +1,16 @@
-/* ══ mentorIndex.ts — the mentors each program named on its own project records.
-   Built by scripts/build-mentor-index.mjs from public/data/mentor-index.json,
-   which splits the mentor field of every archived project. Loaded on demand and
-   cached for the session, because a few thousand names have no business being in
-   the bundle.
+/* ══ mentorIndex.ts — the mentors each program names, from its own record.
+   Built by scripts/build-mentor-index.mjs. Two shapes of evidence feed it:
+   the comma-separated mentor field on archived project rows (GSoC, Outreachy,
+   Summer of Bitcoin), and sources that publish mentors as people - LFX's own
+   mentor directory and project records, GSSoC's mentor board, the Mentor line
+   on each Season of KDE ideas page. Loaded on demand and cached for the
+   session, because a few thousand names have no business being in the bundle.
 
-   What this is not: a headcount of people. The archive publishes names as strings
-   for a window we chose (2022-2026), so two spellings of one person count twice
-   and one person across two programs counts once per program. The page says so. ═ */
+   What this is not: a headcount of people. Names are strings, so two spellings
+   of one person count twice and one person across two programs counts once per
+   program. Where a source caps what it exposes - GSSoC serves 200 mentor rows
+   and no more - the record says so rather than guessing at the rest. The page
+   repeats all of this.                                                 ═ */
 import { useEffect, useState } from "react";
 
 export type MentorRow = {
@@ -14,16 +18,22 @@ export type MentorRow = {
   projects: number;
   years: number[];
   orgs: string[];
-  orgCount: number;
+  orgCount?: number;
+  login?: string;
+  skills?: string[];
 };
 
 export type MentorProgram = {
   label: string;
-  /** the years our project archive covers for this program, e.g. [2022, 2026] */
+  /** the years our record covers for this program, e.g. [2022, 2026] */
   years: number[];
   mentors: number;
-  projectsWithMentors: number;
+  projectsWithMentors: number | null;
   top: MentorRow[];
+  note?: string;
+  capped?: boolean;
+  participants?: number;
+  directory?: { registered: number; nameable: number; withProjects: number; source: string; note: string } | null;
 };
 
 export type MentorFile = {
@@ -70,5 +80,7 @@ export function useMentors(id: string): Mentors {
   return state;
 }
 
-/** the four programs whose archives name mentors at all */
-export const MENTOR_IDS = ["gsoc", "lfx", "sob"] as const;
+/** every program whose record names mentors: the four project archives plus the
+    two programs that publish a mentor list of their own (GSSoC's board, the
+    Season of KDE ideas pages). Outreachy names its mentors nowhere. */
+export const MENTOR_IDS = ["gsoc", "lfx", "sob", "gssoc", "kde"] as const;

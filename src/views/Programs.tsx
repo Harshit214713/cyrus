@@ -10,6 +10,7 @@ import { Link } from "@/lib/router";
 import { PROGRAMS } from "../data/orgs";
 import { avatarOf, fmt } from "../lib/util";
 import { useRosterIndex } from "../lib/programRoster";
+import type { Evidence, RosterIndex } from "../lib/programRoster";
 import { btn, Chip, OrgImg, Word } from "../components/ui";
 import type { Program } from "../lib/types";
 
@@ -32,6 +33,11 @@ const STATUS_PILL: Record<Program["status"], string> = {
   live: "text-leaf border-leaf/40 bg-leaf/8",
   upcoming: "text-honey border-honey/45 bg-honey/8",
   closed: "text-dim border-line bg-cream",
+};
+
+const EVIDENCE_WORD: Record<Evidence, string> = {
+  archive: "from its project archive", api: "from its open API",
+  listing: "from its published list", topics: "from GitHub topics",
 };
 
 /* ── one program card ─────────────────────────────────────────── */
@@ -58,7 +64,7 @@ function ProgCard({ p, roster }: { p: Program; roster?: RosterSlot }) {
         </div>
         <p className="font-mono text-[10px] tracking-[.09em] uppercase text-dim">{p.window}</p>
         <p className="font-mono text-[10px] tracking-[.09em] uppercase -mt-1.5 text-accent/80">
-          {roster ? `${fmt(roster.orgs)} orgs listed · ${roster.source}` : "Roster not published"}
+          {roster ? `${fmt(roster.orgs)} orgs · ${EVIDENCE_WORD[roster.source]}` : "Roster not published"}
         </p>
         <div className="flex items-center gap-3 mt-auto pt-3 border-t border-liness">
           <Link to={`/programs/${p.id}`} className="text-[12.5px] font-bold text-accent hover:text-rust transition-colors">Program page</Link>
@@ -74,9 +80,9 @@ function ProgCard({ p, roster }: { p: Program; roster?: RosterSlot }) {
 
 /* ── the participation record for all thirteen programs ─────── */
 type YearGrid = Map<string, Map<number, number>>;
-type RosterSlot = { orgs: number; projects: number; source: "archive" | "topics" };
+type RosterSlot = { orgs: number; projects: number; source: Evidence };
 
-function ArchiveBand({ grid, loading, roster }: { grid: YearGrid | null; loading: boolean; roster: Record<string, RosterSlot> }) {
+function ArchiveBand({ grid, loading, roster, idx }: { grid: YearGrid | null; loading: boolean; roster: Record<string, RosterSlot>; idx: RosterIndex }) {
   const years = useMemo(() => {
     if (!grid) return [2026, 2025, 2024, 2023, 2022];
     const set = new Set<number>();
@@ -93,11 +99,12 @@ function ArchiveBand({ grid, loading, roster }: { grid: YearGrid | null; loading
     <section className="bg-card border border-line rounded-[22px] p-[22px] shadow-soft overflow-x-auto">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
         <div>
-          <h2 className="panel-h text-[18px]">Five years of <Word>accepted projects</Word></h2>
+          <h2 className="panel-h text-[18px]">The <Word>participation record</Word></h2>
           <p className="text-cocoa text-[12.5px] mt-1.5 max-w-[680px] leading-[1.6]">
             Every program we track, with the organizations it actually named and the projects it
             actually accepted. Pick a number to open that slice - the org count opens the roster on
-            the program page. Where an organizer publishes nothing, the row says so.
+            the program page, where each list says whether it came from an archive, an API or a
+            published roster. Where an organizer publishes nothing, the row says so.
           </p>
         </div>
         <Link to="/projects" className={btn("outline", "sm")}>Browse the whole archive</Link>
@@ -129,7 +136,7 @@ function ArchiveBand({ grid, loading, roster }: { grid: YearGrid | null; loading
                 </td>
                 <td className="text-right py-2.5">
                   {r ? (
-                    <Link to={`/programs/${p.id}`} title={`${r.source === "archive" ? "Counted from accepted projects" : "Counted from GitHub topics"}`}
+                    <Link to={`/programs/${p.id}`} title={EVIDENCE_WORD[r.source]}
                       className="font-mono text-[12.5px] font-bold text-accent hover:text-rust transition-colors tabular-nums">
                       {fmt(r.orgs)}
                     </Link>
@@ -148,18 +155,33 @@ function ArchiveBand({ grid, loading, roster }: { grid: YearGrid | null; loading
                     </td>
                   );
                 })}
-                <td className="text-right py-2.5 font-mono text-[12.5px] font-bold text-cocoa tabular-nums">
-                  {name ? (loading ? "…" : fmt(total(name))) : r ? fmt(r.projects) : <span className="text-dim/60 font-normal">–</span>}
+                <td className="text-right py-2.5 font-mono text-[12.5px] font-bold text-cocoa tabular-nums"
+                  title={r ? `${EVIDENCE_WORD[r.source]} · the program's full record, which can run wider than the listing below` : "from the browsable listing"}>
+                  {r ? fmt(r.projects) : name ? (loading ? "…" : fmt(total(name))) : <span className="text-dim/60 font-normal">–</span>}
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="font-mono text-[10px] uppercase tracking-[.11em] text-dim mt-4">
+      <p className="font-mono text-[10px] uppercase tracking-[.11em] text-dim mt-4 leading-[1.9]">
         {loading
           ? "Counting the archive…"
-          : <>Org and project counts read from the archive files - <b className="text-cocoa">{fmt(orgTotal)}</b> distinct organizations across <b className="text-cocoa">{fmt(total("GSoC") + total("LFX") + total("Outreachy") + total("Summer of Bitcoin"))}</b> accepted projects. The {PROGRAMS.length - Object.keys(roster).length} programs with no public roster say so on their page instead of guessing.</>}
+          : <>
+            {Object.keys(roster).length} programs publish a participant list, and every one of them is on
+            its own page - <b className="text-cocoa">{fmt(idx.totals?.orgRows ?? orgTotal)}</b> organization
+            rows, <b className="text-cocoa">{fmt(idx.totals?.distinctOrgs ?? orgTotal)}</b> of them distinct after
+            names and GitHub logins are folded together, <b className="text-cocoa">{fmt(idx.totals?.orgsInMoreThanOneProgram ?? 0)}</b>
+            {" "}shared by more than one program. The{" "}
+            {PROGRAMS.length - Object.keys(roster).length} programs with no public roster say so on their page
+            instead of guessing. The year columns count the rows in the browsable listing; the Projects column
+            is that program's own record, which can run wider - GSoC's mirror goes back to 2016, its listing
+            covers 2022 onward.
+            {idx.lf ? <> The Linux Foundation's own gateway adds <b className="text-cocoa">{fmt(idx.lf.memberOrgs)}</b> member
+              organizations across {Object.keys(idx.lf.foundations).length} foundations - a different population,
+              shown on the LFX page beside its {roster.lfx?.orgs ?? 47} mentorship hosts.</> : null}
+            {" "}Roster built {idx.generated}.
+          </>}
       </p>
     </section>
   );
@@ -215,8 +237,8 @@ export default function Programs() {
       </h1>
       <p className="text-ink font-medium max-w-[720px] text-[16.5px] leading-[1.6]">
         Mentored seasons with real stipends and a public record - {PROGRAMS.length} tracked programs,{" "}{live} in
-        session right now. Every page carries the organizations that took part and the projects they
-        accepted, counted from the archive rather than estimated.
+        session right now. Every page carries the organizations that took part and the work they recorded,
+        counted from the archive, API or participant list that program actually publishes rather than estimated.
       </p>
 
       {/* status filter */}
@@ -244,7 +266,7 @@ export default function Programs() {
 
       {/* five-year archive */}
       <div className="mt-14">
-        <ArchiveBand grid={grid} loading={grid === null} roster={rst.byId} />
+        <ArchiveBand grid={grid} loading={grid === null} roster={rst.byId} idx={rst} />
       </div>
 
       {/* close */}

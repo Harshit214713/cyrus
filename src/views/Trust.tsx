@@ -22,11 +22,14 @@ const D: Record<string, string> = {
   layers: "M12 3 3 8l9 5 9-5-9-5ZM3 16l9 5 9-5M3 12l9 5 9-5",
 };
 
-/* the three archive datasets, with their real verified row counts */
+/* every roster dataset, with its real verified row count */
 const VERIFIED: [string, string, string, number, string, string][] = [
-  ["Google Summer of Code", "Programs.google.com API + org proposals", "Accepted project records, 2022–2026", 5238, "leaf", "gsoc api"],
-  ["LFX Mentorship", "mentorship.lfx.linuxfoundation.net listings", "Completed + active mentored projects", 941, "denim", "lfx api"],
-  ["Outreachy + Summer of Bitcoin", "Outreachy archives + event organizers", "Accepted intern and participant projects", 503, "plum", "org pages"],
+  ["Google Summer of Code", "gsocorganizations.dev - a community mirror of Google's per-year org pages", "Accepted project records, 519 organizations, 2016-2026", 12095, "leaf", "all-time mirror"],
+  ["LFX Mentorship", "api.mentorship.lfx.linuxfoundation.org - every published project", "1,303 mentored projects hosted by 47 Linux Foundation projects", 1303, "denim", "platform API"],
+  ["Outreachy + Summer of Bitcoin", "Outreachy archives, its call for participation, and event organizers", "437 internships across 179 communities, plus 66 Bitcoin projects", 503, "plum", "org pages"],
+  ["GSSoC'26", "gssoc.girlscript.org/api - projects, mentors and leaderboard", "423 projects in 420 repositories, 47,896 contributors on the board", 423, "leaf", "season board"],
+  ["24 Pull Requests", "24pullrequests.com projects.json + organisations.json", "Organizations that took part, plus 306 curated wishlist repositories", 10080, "denim", "wishlist + orgs"],
+  ["MLH Fellowship + Season of KDE", "Every MLH fork and the upstream it came from; the KDE wiki ideas pages", "120 upstream organizations behind MLH's forks, 87 KDE ideas with their mentors", 285, "plum", "forks + listing"],
 ];
 
 const FOUNDATIONS: [string, string, string][] = [
@@ -40,7 +43,7 @@ const FOUNDATIONS: [string, string, string][] = [
 
 const SOURCES: [string, string, string][] = [
   ["GitHub REST API", "Every 14 days", "Stars, forks, open issues, language, license and last push for all " + fmt(REPOS.length) + " catalog repos and " + fmt(ORGS.length) + " org profiles."],
-  ["GSoC + mentorship APIs", "Each season window", "Accepted-project records for GSoC, LFX, Outreachy and Summer of Bitcoin - titles, orgs, stacks, sizes, mentors."],
+  ["Program archives and open APIs", "Each season window", "Accepted-project records for GSoC, LFX, Outreachy and Summer of Bitcoin - titles, orgs, stacks, sizes, mentors - plus the live boards GSSoC, 24 Pull Requests and MLH publish themselves, and the Linux Foundation's member directory."],
   ["GitHub search API (issues)", `Crawled ${CRAWL.crawledAt}`, fmt(CRAWL.issues) + " open issues read live out of " + fmt(CRAWL.reposWithIssues) + " catalog repositories - title, labels, age and the thread URL. Only issues GitHub still reports open make the cut."],
   ["Program organizer pages", "Each season window", "Application and coding windows for all " + PROGRAMS.length + " tracked programs are re-read from the organizer's own site; anything unpublished is marked as an estimate."],
 ];
@@ -75,7 +78,7 @@ export default function Trust() {
         <section className={`${W} mt-[54px]`}>
           <div className="flex items-baseline gap-3 flex-wrap mb-7">
             <h2 className="font-display font-extrabold tracking-[-.02em] text-[clamp(24px,3vw,34px)]">Active snapshot verifications</h2>
-            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · 13,539 records under review each cycle</span>
+            <span className="font-mono text-[11px] tracking-[.12em] uppercase text-dim">running now · 14,912 archived projects and 11,265 distinct organizations</span>
           </div>
           <div className="grid grid-cols-3 gap-5 max-[900px]:grid-cols-1">
             {VERIFIED.map(([b, src, sub, n, tone, badge]) => (

@@ -110,6 +110,71 @@ for (const [id, bucket] of index) {
   };
 }
 
+/* ── the programs whose mentors are published as people, not as a string ──
+   LFX gives real mentor objects on each project and a whole mentor directory of
+   its own; GSSoC gives a mentor board the site exposes as JSON; Season of KDE
+   writes a Mentor line per idea. None of those are a comma-separated field on a
+   project row, so they are absorbed separately and labelled.               ═ */
+const read = (f) => { try { return JSON.parse(readFileSync(join(ROOT, "public/data", f), "utf8")); } catch { return null; } };
+
+{
+  const lfx = read("lfx-archive.json")?.programs?.lfx;
+  const dir = read("lfx-mentors.json");
+  if (lfx?.mentors?.length) {
+    programs.lfx = {
+      label: "LFX Mentorship",
+      years: lfx.years ?? [],
+      mentors: lfx.mentors.length,
+      projectsWithMentors: null,
+      note: "Every distinct mentor name printed on the " + lfx.projects + " projects LFX Mentorship has published.",
+      top: (dir?.top ?? []).slice(0, TOP).map((m) => ({ name: m.name, projects: m.projects, years: [], orgs: [], skills: m.skills?.slice(0, 5) ?? [] })),
+      directory: dir ? {
+        registered: dir.registered, nameable: dir.nameable, withProjects: dir.withProjects,
+        source: dir.source,
+        note: dir.note,
+      } : null,
+    };
+  }
+}
+
+{
+  const g = read("gssoc-archive.json");
+  if (g?.mentors?.names?.length) {
+    const byName = new Map();
+    for (const m of g.mentors.names) byName.set(m.name, m);
+    programs.gssoc = {
+      label: "GSSoC'26",
+      years: [g.season ?? 2026],
+      mentors: byName.size,
+      projectsWithMentors: g.projects,
+      note: "The mentor directory GSSoC exposes at /api/mentors returns " + g.mentors.listed + " names and ignores pagination, plus the project admins named on each registered project." + (g.mentors.capped ? " The endpoint capped at 200 rows, so the count is a floor." : ""),
+      top: [...byName.values()].slice(0, TOP).map((m) => ({ name: m.name, projects: 0, years: [g.season ?? 2026], orgs: [], login: m.login })),
+      capped: !!g.mentors.capped,
+      participants: g.participants ?? null,
+    };
+  }
+}
+
+{
+  const k = read("kde-archive.json");
+  if (k?.mentors?.length) {
+    const count = new Map();
+    for (const idea of k.ideas ?? []) for (const n of String(idea.m ?? "").split(",")) {
+      const key = norm(n.trim());
+      if (key) count.set(key, (count.get(key) ?? 0) + 1);
+    }
+    programs.kde = {
+      label: "Season of KDE",
+      years: k.years ?? [],
+      mentors: k.mentors.length,
+      projectsWithMentors: k.projects,
+      note: "The Mentor line on each Season of KDE ideas page. Free text: a placeholder like 'approach them' is dropped rather than counted as a person.",
+      top: [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP).map(([key, n]) => ({ name: k.mentors.find((m) => norm(m) === key) ?? key, projects: n, years: [], orgs: [] })),
+    };
+  }
+}
+
+
 const file = {
   generated: new Date().toISOString().slice(0, 10),
   note: "Names are the mentors published alongside accepted projects in the archive we hold. Distinct spellings, not distinct people, and an organization that listed itself as mentor is dropped.",
