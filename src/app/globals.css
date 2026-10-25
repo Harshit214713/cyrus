@@ -14,27 +14,31 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── dark graphite surfaces (the default) ── */
-  --color-paper: #0e0f10;
-  --color-sand: #121314;
-  --color-cream: #17191b;
-  --color-card: #141516;
-  --color-clay: #1d2023;
-  --color-line: #2a2d31;
-  --color-liness: #202325;
-  --color-rule: #3f454a;
-  --color-ink: #eceef0;
-  --color-cocoa: #a2a8ad;
-  --color-dim: #71787e;
+  /* ── dark graphite surfaces (the default) ──
+     Neutral by construction: R = G = B on every one of these, so no surface
+     carries the green cast the old blue-grey ramp picked up under the signal
+     green accent. The page sits near black; the bands lift off it in steps of
+     the same hueless grey. */
+  --color-paper: #090909;
+  --color-sand: #0e0e0e;
+  --color-cream: #151515;
+  --color-card: #101010;
+  --color-clay: #1a1a1a;
+  --color-line: #262626;
+  --color-liness: #1d1d1d;
+  --color-rule: #3c3c3c;
+  --color-ink: #f0f0f0;
+  --color-cocoa: #a3a3a3;
+  --color-dim: #747474;
 
   /* ── hero horizon ridges (see HorizonBackdrop.tsx) ──
      far catches the sky, near sinks back into paper. Held a few steps
      above --color-paper on purpose: on a #0e0f10 page a ridge that is
      only one value darker simply disappears. */
-  --ridge-far: #2b343a;
-  --ridge-mid: #1d2429;
-  --ridge-near: #141a1e;
-  --star: #eceef0;
+  --ridge-far: #2b2f33;
+  --ridge-mid: #1d2022;
+  --ridge-near: #131415;
+  --star: #f0f0f0;
 
   /* ── signal green family ── */
   --color-accent: #4ade80;
@@ -57,12 +61,12 @@
      In light mode these are real graphite. In dark mode they lift *above*
      the page instead of sinking below it, because a band one step darker
      than #0e0f10 is simply invisible. */
-  --color-coffee: #121415;
-  --color-bean: #171a1c;
-  --color-bark: #1d2124;
-  --color-roast: #2b3035;
-  --color-foam: #eceef0;
-  --color-steam: #9aa1a7;
+  --color-coffee: #0d0d0d;
+  --color-bean: #141414;
+  --color-bark: #1a1a1a;
+  --color-roast: #282828;
+  --color-foam: #f0f0f0;
+  --color-steam: #9a9a9a;
   --color-dimdk: #6b7280;
 
   /* next/font declares --font-jakarta, --font-inter and --font-jbmono on <html>
@@ -303,9 +307,11 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .hero-glow {
   position: absolute; inset: -220px 0 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(640px 380px at 12% 0%, rgba(74, 222, 128, 0.12), transparent 70%),
-    radial-gradient(700px 420px at 88% 10%, rgba(34, 197, 94, 0.07), transparent 70%),
-    radial-gradient(900px 480px at 50% 118%, rgba(96, 165, 250, 0.06), transparent 70%);
+    /* no green wash: the hero light is neutral, so the page reads as black
+       and the accent green stays on the things that are actually interactive */
+    radial-gradient(640px 380px at 12% 0%, rgba(255, 255, 255, 0.045), transparent 70%),
+    radial-gradient(700px 420px at 88% 10%, rgba(255, 255, 255, 0.03), transparent 70%),
+    radial-gradient(900px 480px at 50% 118%, rgba(255, 255, 255, 0.028), transparent 70%);
 }
 
 /* ── hero stage: the dashboard embedded in a landscape ─────────
@@ -532,18 +538,37 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .pulse-grid > :nth-child(3n+2)::after { animation-delay: -2.5s; }
 .pulse-grid > :nth-child(3n)::after { animation-delay: -5s; }
 
-/* ── site splash: one-time intro curtain ──────────────────── */
-@keyframes splashLift { to { opacity: 0; transform: translateY(-18px); visibility: hidden; } }
-@keyframes splashPop { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
-@keyframes splashWord { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* ── site splash: one-time intro curtain ─────────────────────────────
+   The curtain's own motion (it lifts) is framer-motion's, in Shell.tsx; this
+   rule only places it. The mark inside draws itself - see .mark-live. */
 .splash {
   position: fixed; inset: 0; z-index: 95; background: var(--color-paper);
   display: grid; place-items: center; pointer-events: none;
-  animation: splashLift .5s var(--ease-silk) 1.45s forwards;
+  will-change: transform;
 }
-.splash-mark { opacity: 0; animation: splashPop .55s var(--ease-silk) .05s forwards; }
-.splash-word { opacity: 0; animation: splashWord .5s var(--ease-silk) .38s forwards; }
-.splash-sub { opacity: 0; animation: splashWord .5s var(--ease-silk) .6s forwards; }
+
+/* the header mark: the commit turns a quarter on hover, the way the ring's
+   open end closes a little when you reach it. Entrance is framer-motion's. */
+.mark-commit {
+  transform-box: fill-box; transform-origin: center;
+  transition: transform .55s var(--ease-silk);
+}
+a:hover .mark-commit, button:hover .mark-commit { transform: rotate(90deg); }
+
+/* the idle light: a short dash running the ring from its open end up to the
+   commit. pathLength is normalised to 100 on the element, so the dash maths
+   here is in percent of the ring rather than in user units. */
+.mark-run { animation: markRun 3.6s cubic-bezier(.55, 0, .45, 1) infinite; }
+@keyframes markRun {
+  0%      { stroke-dasharray: 0 100; stroke-dashoffset: 0;   opacity: 0; }
+  10%     { stroke-dasharray: 16 84; stroke-dashoffset: -4;  opacity: .9; }
+  55%     { stroke-dasharray: 16 84; stroke-dashoffset: -60; opacity: .9; }
+  78%,100%{ stroke-dasharray: 0 100; stroke-dashoffset: -84; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mark-commit { transition: none; }
+  .mark-run { animation: none; }
+}
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

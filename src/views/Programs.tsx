@@ -107,9 +107,6 @@ function ArchiveBand({ grid, loading, roster, idx, stats, arcs }: {
     return [...set].sort((a, b) => b - a).slice(0, 6);
   }, [grid, arcs]);
 
-  const total = (name: string) =>
-    grid ? [...(grid.get(name)?.values() ?? [])].reduce((a, b) => a + b, 0) : 0;
-
   /** one program's season counts: the full mirror where we hold it, otherwise
       the rows its own shard carries */
   const byYearOf = (id: string): Map<number, number> => {
@@ -146,7 +143,6 @@ function ArchiveBand({ grid, loading, roster, idx, stats, arcs }: {
                 {loading ? "…" : y}
               </th>
             ))}
-            <th className="font-mono text-[9.5px] uppercase tracking-[.12em] text-dim pb-2.5 font-medium text-right">Projects</th>
           </tr>
         </thead>
         <tbody>
@@ -188,18 +184,6 @@ function ArchiveBand({ grid, loading, roster, idx, stats, arcs }: {
                     </td>
                   );
                 })}
-                <td className="text-right py-2.5 font-mono text-[12.5px] font-bold tabular-nums">
-                  {arc ? (
-                    <Link to={`/programs/${p.id}`} title={`${arc.projects.toLocaleString()} rows in ${p.name}'s own record · read from ${arc.source}`}
-                      className="text-cocoa hover:text-accent transition-colors">
-                      {fmt(arc.projects)}
-                    </Link>
-                  ) : r ? (
-                    <span className="text-cocoa" title={`${EVIDENCE_WORD[r.source]} · the program's full record`}>{fmt(r.projects)}</span>
-                  ) : name ? (
-                    <span className="text-cocoa">{loading ? "…" : fmt(total(name))}</span>
-                  ) : <span className="text-dim/60 font-normal">–</span>}
-                </td>
               </tr>
             );
           })}
@@ -209,8 +193,8 @@ function ArchiveBand({ grid, loading, roster, idx, stats, arcs }: {
         {loading
           ? "Reading the archive…"
           : <>
-            Year columns count the rows in the browsable listing; the Projects column is that
-            program's own record, which can run wider. Every figure comes from the archive, API or
+            Each year column counts the rows in the browsable listing for that
+            season. Every figure comes from the archive, API or
             published list the program itself puts out.
             {idx.generated ? <> Record built {idx.generated}.</> : null}
           </>}

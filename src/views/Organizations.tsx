@@ -32,6 +32,12 @@ function PageHead() {
         {ORGS.length} open-source organizations, each one named by a program's own record.
         Filter by field or technology; stars, repositories and issues are read live from GitHub.
       </p>
+      <p className="mt-3.5">
+        <Link to="/organizations/stats" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-rust">
+          The statistics across every program's record
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M5 12h13m-5-6 6 6-6 6" /></svg>
+        </Link>
+      </p>
     </header>
   );
 }

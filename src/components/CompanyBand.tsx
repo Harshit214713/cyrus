@@ -20,7 +20,7 @@ export default function CompanyBand() {
     <section aria-label="Companies behind the index" className="max-w-[1240px] mx-auto px-6 mt-[96px]">
       <div className="relative overflow-hidden rounded-[30px] bg-coffee border border-bean text-foam px-8 py-14 max-[700px]:px-5 text-center shadow-lift">
         <span aria-hidden className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,rgba(244,238,227,.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(244,238,227,.05)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(820px_420px_at_50%_38%,#000_40%,transparent)]" />
-        <span aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(640px_300px_at_50%_-10%,rgba(74, 222, 128,.18),transparent_70%),radial-gradient(520px_280px_at_92%_110%,rgba(47, 125, 114,.14),transparent_70%)]" />
+        <span aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(640px_300px_at_50%_-10%,rgba(255,255,255,.06),transparent_70%),radial-gradient(520px_280px_at_92%_110%,rgba(255,255,255,.045),transparent_70%)]" />
         <div className="relative">
           <span className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-bold tracking-[.18em] uppercase text-foam/90 bg-white/8 border border-white/15 rounded-full px-4 py-2">
             <span className="text-honey leading-none">✦</span>The companies behind the index

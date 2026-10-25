@@ -71,7 +71,7 @@ export default function Nav() {
       <nav className="sticky top-0 z-[60] bg-paper px-4 pt-3 max-[700px]:px-2.5">
         <div className="max-w-[1340px] mx-auto bg-paper/92 backdrop-blur-[16px] saturate-[1.35] border border-liness rounded-full shadow-soft">
           <div className="flex items-center gap-5 h-[62px] pl-4 pr-4 max-[1023px]:h-[54px] max-[700px]:gap-2.5 max-[700px]:pl-2.5 max-[700px]:pr-2.5">
-            <Link to="/" className="flex items-center gap-2.5 shrink-0 max-[700px]:gap-2"><Logo size={34} /><Brand /></Link>
+            <Link to="/" className="flex items-center gap-2.5 shrink-0 max-[700px]:gap-2"><Logo size={34} draw live /><Brand /></Link>
             {/* desktop strip: single tightened row, lg+ only */}
             <div className="hidden lg:flex items-center gap-1 min-w-0">
               {LINKS.map((l) => (

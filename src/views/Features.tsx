@@ -68,7 +68,7 @@ function Workflow() {
         </div>
       </div>
       <div className="rounded-[26px] border border-line bg-cream p-8 shadow-lift relative overflow-hidden">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(400px_120px_at_50%_0%,rgba(62,125,79,.10),transparent_70%)]" />
+        <span aria-hidden className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(400px_120px_at_50%_0%,rgba(255,255,255,.05),transparent_70%)]" />
         <p className="text-center font-mono text-[10.5px] font-bold tracking-[.22em] uppercase text-leaf">Cyrus workflow</p>
         <h3 className="text-center font-display font-extrabold text-[24px] tracking-[-.02em] mt-2 mb-7">Saved to merged PR</h3>
         <div className="relative">

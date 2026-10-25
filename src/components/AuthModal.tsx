@@ -225,8 +225,8 @@ export default function AuthModal() {
             from the panel's bottom edge, a pet travelling country to country,
             one arrival pill at a time (UserGlobe.tsx owns all of it) ── */}
         <div className="relative flex items-stretch justify-center overflow-hidden p-12 pt-9 max-[900px]:hidden"
-          style={{ background: "radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 60%)" }}>
-          <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, transparent 55%, color-mix(in srgb, var(--color-accent) 9%, transparent))" }} />
+          style={{ background: "radial-gradient(120% 90% at 50% 115%, rgba(255,255,255,0.05), transparent 60%)" }}>
+          <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, transparent 55%, rgba(255,255,255,0.045))" }} />
           <UserGlobe />
         </div>
 

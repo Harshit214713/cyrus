@@ -222,11 +222,12 @@ export default function ProgramOrgs() {
                 <Word>{p.name}</Word> {units}
               </h1>
               <p className="text-foam/75 mt-1.5 text-[14px]">
-                {r.ready ? `${fmt(r.rows.length)} ${units} · ${fmt(r.projects)} projects recorded` : "Reading the participation record..."}
+                {r.ready ? `${fmt(r.rows.length)} ${units}` : "Reading the participation record..."}
               </p>
             </div>
             <div className="ml-auto flex gap-2.5 items-center flex-wrap">
               <Link to={`/programs/${p.id}`} className={btn("outline", "md", "bg-transparent! text-foam! border-white/25! hover:border-white/60!")}>Back to the program</Link>
+              <Link to="/organizations/stats" className={btn("outline", "md", "bg-transparent! text-foam! border-white/25! hover:border-white/60!")}>All programs, one list</Link>
               <a href={p.url} target="_blank" rel="noopener" className={btn("primary", "md")}>Official website</a>
             </div>
           </div>

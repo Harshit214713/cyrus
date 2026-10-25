@@ -136,7 +136,6 @@ export default function Sponsors() {
       (plat === "all" || f.platforms[plat]?.length) &&
       (!needle || f.repo.toLowerCase().includes(needle) || f.desc.toLowerCase().includes(needle) || f.lang.toLowerCase().includes(needle)));
   }, [items, q, plat]);
-  const ghPeople = useMemo(() => new Set(items.flatMap((f) => f.platforms.github ?? [])).size, [items]);
 
   return (
     <div className="pb-24">
@@ -152,7 +151,7 @@ export default function Sponsors() {
             The projects with<br className="max-[700px]:hidden" /> a real <Word>Sponsor</Word> button.
           </h1>
           <p className="mt-4 max-w-[640px] text-[15px] leading-[1.65] text-cocoa">
-            {data ? <>We read the <code className="font-mono text-[13.5px] text-ink">FUNDING.yml</code> of the {fmt(data.scanned)} most-starred projects in the catalog. <b className="text-ink font-semibold">{fmt(items.length)} of them</b> tell contributors where the money goes - {ghPeople} maintainers on GitHub Sponsors itself. Every link below is the address the project published, nothing we guessed.</> : "Reading each repository's declared funding file, one by one."}
+            {data ? <>We read each project's <code className="font-mono text-[13.5px] text-ink">FUNDING.yml</code> and list only the ones that declare where the money goes. Every link below is the address the project published, nothing we guessed.</> : "Reading each repository's declared funding file, one by one."}
           </p>
         </div>
       </header>
@@ -170,7 +169,7 @@ export default function Sponsors() {
             {PLATFORMS.filter((p) => counts[p.key]).map((p) => (
               <button key={p.key} type="button" onClick={() => { setPlat(p.key); write({ plat: p.key }); }}
                 className={`font-mono text-[10px] uppercase tracking-[.08em] rounded-full px-3 py-[7px] border transition-colors cursor-pointer ${plat === p.key ? "border-accent bg-peach text-accent font-bold" : "border-line bg-card text-cocoa hover:border-accent/40"}`}>
-                {p.short} <span className="opacity-60">{counts[p.key]}</span>
+                {p.short}
               </button>
             ))}
             {plat !== "all" && (
@@ -222,23 +221,25 @@ export default function Sponsors() {
                 <Link to="/leaderboard" className={btn("outline", "md")}>Who the PRs come from</Link>
               </div>
             </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 md:border-l md:border-dashed md:border-line md:pl-8">
-              {[
-                [fmt(items.length), "catalog projects with a FUNDING.yml"],
-                [String(ghPeople), "maintainers on GitHub Sponsors"],
-                [fmt(data?.scanned ?? 0), "repos read against the API"],
-                [String(counts.open_collective || 0), "projects on Open Collective"],
-              ].map(([v, l]) => (
-                <div key={l}>
-                  <dt className="font-display font-extrabold text-[clamp(22px,3vw,30px)] text-accent leading-none">{v}</dt>
-                  <dd className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim mt-1.5 leading-[1.6]">{l}</dd>
-                </div>
-              ))}
-            </dl>
+            {/* where the money actually lands. Named, not counted - the filter
+                rail above already answers "how many of each". */}
+            <div className="md:border-l md:border-dashed md:border-line md:pl-8">
+              <p className="font-mono text-[9.5px] uppercase tracking-[.12em] text-dim">
+                Platforms these projects declare
+              </p>
+              <ul className="mt-3 space-y-2">
+                {PLATFORMS.filter((p) => counts[p.key]).map((p) => (
+                  <li key={p.key} className="flex items-center gap-2.5 text-[13px] text-cocoa">
+                    <span className="h-[5px] w-[5px] rounded-full bg-accent shrink-0" aria-hidden />
+                    {p.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
         <p className="font-mono text-[10px] leading-[1.8] text-dim mt-4 max-w-[720px]">
-          Method: for each of the {fmt(data?.scanned ?? 0)} most-starred repositories in the catalog we fetched
+          Method: for the most-starred repositories in the catalog we fetched
           <code className="text-cocoa"> .github/FUNDING.yml</code> from the default branch via the GitHub contents API.
           A project appears only when that file names at least one platform; the handles shown are copied from it verbatim.
           Amounts, tiers and donor lists are not public through the API, so they are not shown here.

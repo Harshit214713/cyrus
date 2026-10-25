@@ -5,7 +5,7 @@
    contributors, the projects and orgs behind them, and the questions
    a first-time visitor actually asks. No hackathons, no artifacts.
    ════════════════════════════════════════════════════════════ */
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Link } from "@/lib/router";
@@ -15,8 +15,8 @@ import { REPOS } from "../data/repos";
 import { CRAWL } from "../data/crawlStats";
 import { STATS } from "../lib/siteStats";
 import type { Program } from "../lib/types";
-import { avatarOf, fmt, byStars, CAT_META } from "../lib/util";
-import { Word, SectionTag, btn, OrgImg, Avatar } from "../components/ui";
+import { avatarOf, fmt, byStars, CAT_META, reduceMotion } from "../lib/util";
+import { Word, SectionTag, btn, OrgImg, Chip, Portrait } from "../components/ui";
 import { useStore } from "../lib/store";
 
 /* ── shared bits ──────────────────────────────────────────── */
@@ -33,6 +33,8 @@ const ICONS = {
   board: <Icon d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" />,
   search: <Icon d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm5 12 4 4" />,
   spark: <Icon d="M12 3.5 13.9 9l5.6 2-5.6 2L12 20.5 10.1 13 4.5 11l5.6-2Z" />,
+  tray: <Icon d="M12 3v11m0 0 4-4m-4 4-4-4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />,
+  merged: <Icon d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-3.2 9.3 2.3 2.3 4.4-4.6" />,
 };
 
 /* Every section below the hero fades and rises into place once, the first
@@ -206,7 +208,211 @@ function Timeline() {
   );
 }
 
+/* ── the contributor roadmap ──────────────────────────────────
+   Six steps in the order a contributor actually walks them, and every one of
+   them is a screen that exists on the board. The strip across the top is the
+   sequence; the panel underneath is whichever step you picked. The rows on
+   the right are read from the same catalog the pages read, so the preview is
+   a real slice of data rather than a mockup with invented numbers. */
+const STEP_ROWS = {
+  orgs: () => [...ORGS].sort(byStars).slice(0, 4).map((o) => ({
+    t: o.name, m: `${fmt(o.stars)} stars · ${fmt(o.issues)} open issues`, c: `${fmt(o.repos)} repos`,
+  })),
+  repos: () => [...REPOS].sort(byStars).slice(0, 4).map((r) => ({
+    t: r.repo, m: `${r.lang} · ${fmt(r.issues)} open issues`, c: r.license,
+  })),
+  setup: () => [
+    { t: "git clone", m: "the repository behind the issue you saved", c: "step 1" },
+    { t: "git switch -c", m: "a branch named for the issue", c: "step 2" },
+    { t: "pnpm install && pnpm dev", m: "the project's own commands, read from its manifest", c: "step 3" },
+    { t: "git push -u origin", m: "and the compare link, opened for you", c: "step 4" },
+  ],
+  docs: () => [
+    { t: "Summary", m: "what the change does, in the first line", c: "section" },
+    { t: "What changed", m: "one bullet per file the diff touched", c: "section" },
+    { t: "How to test it", m: "the commands a reviewer can paste", c: "section" },
+    { t: "Checklist", m: "matched against the repo's own contributing guide", c: "section" },
+  ],
+  review: () => [
+    { t: "Opened", m: "the pull request, with its linked issue", c: "you" },
+    { t: "Review", m: "comments from the maintainers, read on GitHub", c: "them" },
+    { t: "Changes", m: "push more commits; the thread stays put", c: "you" },
+    { t: "Merged", m: "counted on the leaderboard, dated and linked", c: "done" },
+  ],
+  money: () => PROGRAMS.filter((p) => p.pay !== "Unpaid" && !/unpaid/i.test(p.pay)).slice(0, 4)
+    .map((p) => ({ t: p.name, m: p.pay, c: p.status })),
+};
+
+type StepId = "lane" | "setup" | "issue" | "pr" | "merge" | "funded";
+const STEPS: {
+  id: StepId; label: string; sub: string; icon: keyof typeof ICONS;
+  eyebrow: string; title: string; body: string; checks: string[];
+  cta: string; to: string; path: string; rows: keyof typeof STEP_ROWS;
+}[] = [
+  {
+    id: "lane", label: "Pick a lane", sub: "Organizations", icon: "board", eyebrow: "Step 1 · Choose",
+    title: "Start with the project, not the issue",
+    body: "An issue is only worth taking if the repository behind it is worth a week of your time. Sort the organizations by the things you can actually check.",
+    checks: ["Live counts from each organization's public GitHub profile", "Stack, license and how recently the work moved", "No sponsored placement, no ranking you can buy"],
+    cta: "Open the directory", to: "/organizations", path: "/organizations", rows: "orgs",
+  },
+  {
+    id: "setup", label: "Set it up", sub: "Git starter", icon: "repo", eyebrow: "Step 2 · Build",
+    title: "The clone-to-first-commit part, written out",
+    body: "Every project has its own habits. The starter reads the repository's manifest and gives you the commands for that one, in order, so setup stops being the reason you never started.",
+    checks: ["Branch naming that matches the issue you claimed", "Install and dev commands taken from the project itself", "The compare link ready when your first commit lands"],
+    cta: "Open the git starter", to: "/dashboard/gitstart", path: "/dashboard/gitstart", rows: "setup",
+  },
+  {
+    id: "issue", label: "Find the issue", sub: "Issue finder", icon: "issue", eyebrow: "Step 3 · Claim",
+    title: "Good first issues you can still take",
+    body: "Half of the advice on the internet is a list of issues nobody assigned anyone to. This one says which are claimed, locked, stale, or already have a pull request pointing at them.",
+    checks: ["Assignment and lock state, shown on the card", "How long since the thread moved", "Filtered by language, size and difficulty estimate"],
+    cta: "Find an issue", to: "/issues", path: "/issues", rows: "repos",
+  },
+  {
+    id: "pr", label: "Open the pull", sub: "Draft studio", icon: "tray", eyebrow: "Step 4 · Ship",
+    title: "Write the description once, properly",
+    body: "The pull request that gets read is the one that gets merged. The studio drafts the sections maintainers ask for from the diff and the repository's own contributing guide.",
+    checks: ["Summary, changes, test steps and checklist", "Templates read from the target repository", "Nothing is posted without you pressing the button"],
+    cta: "Open the studio", to: "/dashboard/drafts", path: "/dashboard/drafts", rows: "docs",
+  },
+  {
+    id: "merge", label: "Get it merged", sub: "Leaderboard", icon: "merged", eyebrow: "Step 5 · Land",
+    title: "Track the review without living in your inbox",
+    body: "Saved issues and repositories tell you what moved while you were away, and the leaderboard keeps the merged work in one dated list instead of twelve browser tabs.",
+    checks: ["Merged, open and reviewed counted separately", "A window you set, not a window we picked", "Every row links back to the thread on GitHub"],
+    cta: "See the leaderboard", to: "/leaderboard", path: "/leaderboard", rows: "review",
+  },
+  {
+    id: "funded", label: "Get funded", sub: "Programs", icon: "sponsor", eyebrow: "Step 6 · Apply",
+    title: "Turn the merged work into a paid season",
+    body: "The programs that pay stipends run on published calendars. Their windows, their organization lists and their project records are on the same page as the issues you already worked on.",
+    checks: [`${PROGRAMS.length} mentored programs with their real windows`, "Each program's own archived project record", "Application dates you can put in your calendar"],
+    cta: "Browse the programs", to: "/programs", path: "/programs", rows: "money",
+  },
+];
+
+function Cross({ pos }: { pos: string }) {
+  return (
+    <span aria-hidden className={`absolute z-[2] h-[11px] w-[11px] ${pos}`}>
+      <i className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-rule" />
+      <i className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 bg-rule" />
+    </span>
+  );
+}
+
+function Roadmap() {
+  const [step, setStep] = useState<StepId>("lane");
+  const s = STEPS.find((x) => x.id === step)!;
+  const rows = STEP_ROWS[s.rows]();
+  return (
+    <Section id="roadmap">
+      <Head tag="The contributor roadmap" title={<>Six steps from an empty <Word>weekend</Word> to merged.</>}
+        sub="The order a first contribution actually happens in, and the screen on the board that does each part." />
+      <div className="relative rounded-[26px] border border-dashed border-line bg-card/40 overflow-hidden">
+        <span aria-hidden className="absolute inset-0 pointer-events-none opacity-60 bg-[linear-gradient(to_right,var(--color-liness)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-liness)_1px,transparent_1px)] [background-size:46px_46px]" />
+        <Cross pos="left-[-6px] top-[-6px]" /><Cross pos="right-[-6px] top-[-6px]" />
+        <Cross pos="left-[-6px] bottom-[-6px]" /><Cross pos="right-[-6px] bottom-[-6px]" />
+
+        {/* the step strip */}
+        <div className="relative flex overflow-x-auto no-scrollbar border-b border-dashed border-line">
+          {STEPS.map((x) => {
+            const on = x.id === step;
+            return (
+              <button key={x.id} type="button" onClick={() => setStep(x.id)} aria-pressed={on}
+                className="group relative flex min-w-[148px] flex-1 flex-col items-center gap-1.5 px-3 py-6 cursor-pointer transition-opacity last:border-r-0 border-r border-dashed border-line opacity-60 hover:opacity-100 data-[on=true]:opacity-100"
+                data-on={on}>
+                <span className={`grid h-[38px] w-[38px] place-items-center rounded-[11px] border transition-colors ${on ? "border-accent/60 bg-accent/12 text-accent" : "border-line text-cocoa group-hover:text-ink"}`}>
+                  {ICONS[x.icon]}
+                </span>
+                <b className={`font-display text-[14.5px] leading-none ${on ? "text-ink" : "text-cocoa"}`}>{x.label}</b>
+                <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim leading-none">{x.sub}</span>
+                {on && <span aria-hidden className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-accent" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* the step itself */}
+        <div className="relative grid grid-cols-[1.05fr_1fr] gap-10 max-[980px]:grid-cols-1 max-[980px]:gap-8">
+          <div className="border-r border-dashed border-line px-8 py-12 max-[980px]:border-r-0 max-[980px]:border-b max-[980px]:px-6 max-[980px]:py-9">
+            <span className="inline-flex items-center gap-2 rounded-[9px] border border-line bg-card px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[.12em] text-cocoa">
+              <span className="text-accent">{ICONS[s.icon]}</span>{s.eyebrow}
+            </span>
+            <h3 className="font-display font-extrabold tracking-[-.022em] leading-[1.08] text-[clamp(26px,3.1vw,38px)] mt-6 max-w-[440px]">{s.title}</h3>
+            <p className="text-cocoa text-[15px] leading-[1.7] mt-5 max-w-[430px]">{s.body}</p>
+            <ul className="grid gap-3 list-none mt-8">
+              {s.checks.map((c) => (
+                <li key={c} className="flex gap-3 text-[13.5px] leading-[1.6] text-cocoa">
+                  <span className="grid h-[19px] w-[19px] shrink-0 place-items-center rounded-[6px] border border-accent/40 bg-accent/10 mt-[2px]">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                  </span>
+                  {c}
+                </li>
+              ))}
+            </ul>
+            <Link to={s.to} className={`${btn("dark", "md")} mt-9`}>{s.cta}</Link>
+          </div>
+
+          {/* the preview: real rows, read from the same catalog the page uses */}
+          <div className="px-8 py-12 max-[980px]:px-6 max-[980px]:py-9">
+            <div className="rounded-[16px] border border-line bg-card shadow-lift overflow-hidden">
+              <div className="flex items-center gap-2.5 border-b border-dashed border-line px-4 py-3">
+                <span className="h-[7px] w-[7px] rounded-full bg-accent" aria-hidden />
+                <span className="font-mono text-[10.5px] tracking-[.06em] text-cocoa">{s.path}</span>
+                <span className="ml-auto font-mono text-[9px] uppercase tracking-[.12em] text-dim">from the live catalog</span>
+              </div>
+              <ul className="grid">
+                {rows.map((r, i) => (
+                  <li key={r.t + i} className={`flex items-center gap-3 px-4 py-3.5 ${i ? "border-t border-dashed border-liness" : ""}`}>
+                    <span className="min-w-0 flex-1">
+                      <b className="block truncate font-mono text-[12px] font-semibold text-ink">{r.t}</b>
+                      <span className="block truncate text-[11.5px] text-cocoa mt-0.5">{r.m}</span>
+                    </span>
+                    <Chip>{r.c}</Chip>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="font-mono text-[9.5px] uppercase leading-[1.8] tracking-[.1em] text-dim mt-4">
+              Preview rows are the first entries of that page today, not a fixed illustration.
+            </p>
+          </div>
+        </div>
+
+        {/* everything else the board does */}
+        <div className="relative border-t border-dashed border-line">
+          <p className="px-8 pt-5 font-mono text-[10px] uppercase tracking-[.16em] text-dim">More on the board</p>
+          <div className="grid grid-cols-4 max-[900px]:grid-cols-2">
+            {MORE.map((m) => (
+              <Link key={m.to} to={m.to}
+                className="group flex items-center gap-3 border-r border-dashed border-line px-8 py-5 transition-colors hover:bg-cream/60 last:border-r-0 [&:nth-child(4n)]:border-r-0 max-[900px]:border-b max-[900px]:[&:nth-child(2n)]:border-r-0 max-[900px]:[&:nth-child(n+3)]:border-b-0">
+                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border border-line text-cocoa transition-colors group-hover:border-accent/50 group-hover:text-accent">
+                  {ICONS[m.icon]}
+                </span>
+                <span className="min-w-0">
+                  <b className="block font-display text-[13.5px] leading-none truncate">{m.label}</b>
+                  <span className="block font-mono text-[9.5px] uppercase tracking-[.08em] text-dim mt-1 truncate">{m.sub}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 /* ── projects + organizations ─────────────────────────────── */
+const MORE: { label: string; sub: string; icon: keyof typeof ICONS; to: string }[] = [
+  { label: "Season calendar", sub: "Every deadline", icon: "calendar", to: "/dashboard/calendar" },
+  { label: "Co-pilot", sub: "Matched to you", icon: "spark", to: "/dashboard/matcher" },
+  { label: "Repo analyser", sub: "Is it alive", icon: "search", to: "/dashboard/analyser" },
+  { label: "Sponsors", sub: "Who gets paid", icon: "sponsor", to: "/sponsors" },
+];
+
+
 function OrgMarquee() {
   const card = (o: (typeof ORGS)[number]) => (
     <Link key={o.login} to={`/organizations/${o.login}`}
@@ -333,39 +539,60 @@ const QuoteMark = () => (
   </svg>
 );
 
+/* Arrows, not an auto-scroll: a row that moves on its own cannot be read, and
+   the middle of a quote is the worst place to lose it. The strip snaps to the
+   cards and the buttons step one card at a time. */
+const Arrow = ({ dir }: { dir: -1 | 1 }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    {dir === -1 ? <path d="M15 5l-7 7 7 7" /> : <path d="M9 5l7 7-7 7" />}
+  </svg>
+);
+
 function Voices() {
+  const rail = useRef<HTMLDivElement | null>(null);
+  const nudge = (dir: -1 | 1) => {
+    const el = rail.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-card]");
+    const w = card ? card.offsetWidth + 16 : 376;
+    el.scrollBy({ left: dir * w, behavior: reduceMotion ? "auto" : "smooth" });
+  };
   const card = ([name, role, quote]: typeof QUOTES[number], k: number) => (
-    <figure key={name + k}
-      className="shrink-0 w-[360px] max-[700px]:w-[290px] bg-card border border-line rounded-[16px] p-[22px] flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-lift">
+    <figure key={name + k} data-card
+      className="shrink-0 snap-start w-[376px] max-[700px]:w-[292px] bg-card border border-line rounded-[18px] p-[24px] flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:shadow-lift">
       <QuoteMark />
-      <blockquote className="text-ink text-[14px] leading-[1.72] mt-3.5 flex-1">{quote}</blockquote>
-      <figcaption className="mt-5 pt-4 border-t border-dashed border-line flex items-center gap-3">
-        <Avatar name={name} size={36} />
+      <blockquote className="text-ink text-[14.5px] leading-[1.75] mt-3.5 flex-1">{quote}</blockquote>
+      <figcaption className="mt-6 pt-5 border-t border-dashed border-line flex items-center gap-3">
+        <Portrait name={name} size={44} className="ring-1 ring-line" />
         <span className="min-w-0">
-          <b className="block font-display text-[13.5px] truncate">{name}</b>
+          <b className="block font-display text-[14px] truncate">{name}</b>
           <span className="block text-[11.5px] text-cocoa truncate">{role}</span>
         </span>
-        <span className="ml-auto shrink-0 font-mono text-[9px] font-bold uppercase tracking-[.08em] text-dim border border-line rounded-full px-2.5 py-[4px]">Sample</span>
+        <span className="ml-auto shrink-0 font-mono text-[8.5px] font-bold uppercase tracking-[.1em] text-dim border border-line rounded-full px-2 py-[4px]">Illustrative</span>
       </figcaption>
     </figure>
   );
-  const row = QUOTES.map(card);
   return (
-    <section id="stories" className="mt-[92px] bg-coffee border-y border-bean text-foam overflow-hidden">
-      <div className="max-w-[1240px] mx-auto px-6 pt-14 pb-2">
-        <div className="flex items-end justify-between gap-5 flex-wrap">
-          <div>
-            <SectionTag>Early feedback</SectionTag>
-            <h2 className="font-display font-extrabold tracking-[-.022em] text-[clamp(28px,3.6vw,42px)] mt-3 text-foam">What builders <Word>tell us</Word>.</h2>
-          </div>
-          <p className="text-steam text-[13.5px] max-w-[380px] leading-[1.6]">These cards are layout placeholders until we have quotes we can attribute. The tag on each one says so.</p>
+    <section id="stories" className="mt-[92px] bg-coffee border-y border-bean text-foam">
+      <div className="max-w-[1240px] mx-auto px-6 pt-14 pb-7 flex items-end justify-between gap-6 flex-wrap">
+        <div>
+          <SectionTag>Early feedback</SectionTag>
+          <h2 className="font-display font-extrabold tracking-[-.022em] text-[clamp(28px,3.6vw,42px)] mt-3 text-foam">What builders <Word>tell us</Word>.</h2>
+          <p className="text-steam text-[13.5px] max-w-[520px] leading-[1.65] mt-3">These cards are layout placeholders until we have quotes we can attribute. The faces are drawn, not photographed, and the tag on each card says so.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button type="button" onClick={() => nudge(-1)} aria-label="Previous quotes"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/18 text-foam/80 transition-colors hover:border-accent hover:text-accent cursor-pointer">
+            <Arrow dir={-1} />
+          </button>
+          <button type="button" onClick={() => nudge(1)} aria-label="Next quotes"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/18 text-foam/80 transition-colors hover:border-accent hover:text-accent cursor-pointer">
+            <Arrow dir={1} />
+          </button>
         </div>
       </div>
-      {/* no edge mask here: on this dark band the fade read as a black bar
-          closing off both ends of the row, so the cards simply run to the
-          viewport edge and are clipped by overflow. */}
-      <div className="overflow-hidden py-8">
-        <div className="marq-track animate-marq gap-4 px-4">{row}{row}</div>
+      <div ref={rail} className="snap-x snap-proximity overflow-x-auto no-scrollbar px-6 pb-14">
+        <div className="mx-auto flex max-w-[1240px] gap-4">{QUOTES.map(card)}</div>
       </div>
     </section>
   );
@@ -425,7 +652,7 @@ function Cta() {
   return (
     <section className="cta-close mt-[110px] relative overflow-hidden bg-coffee text-foam">
       <span aria-hidden className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,var(--gl)_1px,transparent_1px),linear-gradient(to_bottom,var(--gl)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(900px_520px_at_50%_42%,#000_40%,transparent)]" />
-      <span aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(720px_340px_at_50%_-12%,color-mix(in_srgb,var(--color-accent)_16%,transparent),transparent_70%)]" />
+      <span aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(720px_340px_at_50%_-12%,rgba(255,255,255,0.05),transparent_70%)]" />
       <div className="relative max-w-[860px] mx-auto px-6 pt-[104px] pb-[112px] text-center">
         <div className="footer-arc w-[120px] mx-auto" />
         <span className="inline-flex items-center gap-2.5 mt-9 eyebrow !text-steam">
@@ -456,6 +683,7 @@ export default function Home() {
       <Features />
       <Programs />
       <Timeline />
+      <Roadmap />
       <Skills />
       <Band />
       <OrgMarquee />

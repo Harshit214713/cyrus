@@ -50,6 +50,7 @@
 - **Named mentors, not advertised ones.** 6,170 mentor names read off the programs' own project rows: 4,917 on GSoC, 982 on the LFX record, 198 on the GSSoC board, 44 Summer of Bitcoin and 29 Season of KDE. Outreachy prints no mentor name anywhere in its archive, and its page says that too.
 - **One catalog for the agent boom.** Skills, Cursor rules, AGENTS.md files, MCP servers and dev agents - all 1,528 of them, 33.79M stars between them, filterable and downloadable as JSON.
 - **Organization intel that is actually live.** 364 organization profiles, every one named by a program's own record, each with live GitHub stats and the programs it appears in. Profiles for organizations no program claimed were removed rather than kept to pad the directory.
+- **The same organization, counted once.** `/organizations/stats` folds every program-level archive into 967 organizations - 14,649 projects, 78 of them appearing in more than one program - by name, by GitHub login, and then by legal form, so "OWASP" and "OWASP Foundation" arrive as one row while two rows with two different confirmed accounts never fold. The eight programs that publish projects rather than hosts stay out of the count, and the page says which they are.
 - **Follow the money.** The Sponsors directory reads `.github/FUNDING.yml` from the top 260 catalog repositories by stars and lists the 82 that actually take funding, with the right link to fund each one.
 - **Proof over promises.** The PR Leaderboard ranks contributors from merged pull requests on real repositories, with open pull requests and reviews counted separately so a single number cannot be gamed.
 - **A dashboard that works signed-out.** Saved issues and repositories, plus twelve screens built on the same datasets: a season calendar with a prefilled Google Calendar event per window and a whole year as `.ics`, a demand radar over five years of accepted projects, a repo analyser scoring any public repository live from GitHub, a four-file draft studio, a co-pilot matcher, a mentor finder, an organization comparison and a git-start script generator.
@@ -121,6 +122,7 @@ Light and dark share one token set - the same coffee-and-honey palette, roasted 
 | Good-first-issue board | **40,017 open issues** · 290 repositories · 757 beginner-labelled | GitHub Search API via `scripts/build-issue-index.mjs`, crawled 2026-10-21 over 9,024 repositories |
 | Program archive | **8,754 projects** · 8,731 rows browsable · 12 programs | `public/data/gsoc-projects.json` (5,238) + `otherProjects.json` (1,444) + every shard in `public/data/program-projects/index.json` |
 | Program organization explorers | **616 organizations** · 13,539 projects · 380 resolved to a GitHub account | `scripts/contribo-orgs.mjs` folding each program's published organization record over our copy of its archive |
+| Cross-program organization statistics | **967 organizations** · 14,649 archived projects · 78 appearing in more than one program · 486 with a confirmed GitHub account | `scripts/org-stats.mjs` → `public/data/org-stats.json`, folded three ways (name key, login key, then legal form, so "OWASP" and "OWASP Foundation" arrive as one row) and shown at `/organizations/stats` |
 | Participation roster | **14,912 projects** · 11,265 distinct organizations · 126 in more than one program | `scripts/build-program-roster.mjs` over the 8 programs that publish a participant list |
 | Named mentors | **6,170** across five programs | `scripts/build-mentor-index.mjs` - GSoC 4,917 · LFX 982 · GSSoC 198 · Summer of Bitcoin 44 · Season of KDE 29 |
 | Linux Foundation member directory | **4,495 organizations** across its foundations | `lf-orgs.json`, from LF's own open gateway - a different population from the LFX Mentorship host list, and shown separately |
@@ -174,10 +176,10 @@ GitHub REST + Search API ──┬─▶ src/data/repos.ts ───────
                            ├─▶ src/data/orgs.ts ──────────────┤
                            ├─▶ public/data/issues.json.gz ────┼─▶ typed snapshots, checked in
 Programs' own archives ────┤    gsoc-projects.json            │      ↓
-                           │    otherProjects.json            ├─▶ 22 prerendered routes
+                           │    otherProjects.json            ├─▶ 29 prerendered routes
 LF open gateway ───────────    program-projects/*.json       │      ↓
 Contribo organization feed ┘    program-roster.json ──────────   Vercel edge
-                                mentor-index.json · sponsors.json
+                                mentor-index.json · sponsors.json · org-stats.json
 ```
 
 Each source keeps its own file and its own provenance note inside it, so a reader of the JSON can tell an organizer's published archive from a topic listing, and a wishlist from a mentored project. Where two sources describe the same organization, the merge is by GitHub login first and normalized name second, and the count of unresolved names stays visible in the file rather than being quietly dropped.
@@ -189,6 +191,7 @@ Each source keeps its own file and its own provenance note inside it, so a reade
 | `/` | Home: the live issue board as a hero, what the product does, programs, the contributor year, organization shelves, FAQ |
 | `/issues` | Good-first-issue finder over 40,017 real open issues - labels, languages, organizations, difficulty |
 | `/organizations` · `/organizations/:login` | 364 GitHub organizations that a program's own record names, with live stats and program badges, plus the rest of the participation roster |
+| `/organizations/stats` | Every organization named by a program-level archive, counted once across programs: 967 rows, 14,649 projects, sector and technology breakdowns, per-season counts and the logos GitHub publishes |
 | `/projects` | The 8,754-project mentored-program archive, filterable by year, organization, stack and program |
 | `/programs` · `/programs/:id` | 13 funded programs - windows, who they are for, their project record, their named mentors and their participation row |
 | `/programs/:id/organizations` | That program's organization explorer: every organization its record names, filterable by year, stack and sector |
@@ -339,7 +342,7 @@ flowchart LR
         SOC[Program archives + FUNDING.yml + LF gateway] --> D4[public/data/*.json]
     end
     subgraph app [Next.js 16 - App Router, React 19]
-        D1 & D2 & D3 & D4 --> PAGES[22 prerendered routes: Home, /issues,<br/>/projects, /programs, /programs/:id/organizations,<br/>/skills, /organizations, /sponsors, /leaderboard,<br/>/dashboard/*, /platform/*, /repo/:id ...]
+        D1 & D2 & D3 & D4 --> PAGES[29 prerendered routes: Home, /issues,<br/>/projects, /programs, /programs/:id/organizations,<br/>/skills, /organizations, /organizations/stats,<br/>/sponsors, /leaderboard,<br/>/dashboard/*, /platform/*, /repo/:id ...]
         API[13 API handlers: auth, me, issues,<br/>catalog, submissions, health]
     end
     PAGES --> V[(Vercel<br/>cyrus-agent.vercel.app)]

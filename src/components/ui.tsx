@@ -2,15 +2,47 @@
 /* ══ ui.tsx — small shared primitives ═══════════════════════ */
 import { useState } from "react";
 import type { ReactNode, ImgHTMLAttributes } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
 import type { Level } from "../lib/types";
 
-export function Logo({ size = 30 }: { size?: number }) {
+export function Logo({ size = 30, draw = false, live = false }: { size?: number; draw?: boolean; live?: boolean }) {
+  /* The mark: an open ring - a branch that never closes - ending in the same
+     rotated square the header uses as its accent. Read it as a "c" or as a
+     commit at the end of someone's work; it is the one shape used everywhere
+     the brand has to fit, from the favicon up to the social card.
+
+     `draw` plays the mark being built: the ring strokes itself round, then the
+     commit drops onto the end of it. It is a load-once gesture on the header
+     and the whole subject of the intro curtain; reduced-motion visitors get
+     the finished mark, as everywhere else.
+
+     `live` adds the idle motion: a short light running the length of the ring
+     and out at the commit, which is the one thing the mark does while nothing
+     is happening to it. */
+  const reduce = useReducedMotion();
+  const anim = draw && !reduce;
+  const easeSilk = [0.22, 1, 0.36, 1] as const;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <rect width="100" height="100" rx="27" fill="#22262a" />
-      <path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke="#eceef0" strokeWidth="11" strokeLinecap="round" />
-      <path d="M76 22c1.6 8.4 5.2 12 13.5 13.6C81.2 37.2 77.6 40.8 76 49.2 74.4 40.8 70.8 37.2 62.4 35.6 70.8 34 74.4 30.4 76 22z" fill="#4ade80" />
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className="mark-live">
+      <rect width="100" height="100" rx="26" fill="#0f1214" />
+      <motion.rect x="1.25" y="1.25" width="97.5" height="97.5" rx="24.75" fill="none" stroke="#ffffff" strokeOpacity=".09" strokeWidth="2.5"
+        initial={anim ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ duration: .4 }} />
+      <motion.path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke="#eceef0" strokeWidth="11" strokeLinecap="round"
+        initial={anim ? { pathLength: 0 } : false} animate={{ pathLength: 1 }}
+        transition={{ duration: .9, ease: easeSilk }} />
+      {live && !reduce && (
+        <path className="mark-run" d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke="#4ade80"
+          strokeWidth="11" strokeLinecap="round" pathLength={100} />
+      )}
+      {/* the commit sits on a group that framer owns for the entrance; the
+          hover turn is a CSS transition on the path inside it, so the two
+          never fight over one transform attribute */}
+      <motion.g initial={anim ? { opacity: 0, scale: .35 } : false} animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: .66, duration: .46, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+        <path className="mark-commit" d="M68 22.8 79.2 34 68 45.2 56.8 34Z" fill="#4ade80" />
+      </motion.g>
     </svg>
   );
 }
@@ -18,6 +50,45 @@ export function Logo({ size = 30 }: { size?: number }) {
 export const Brand = () => (
   <span className="font-display font-extrabold text-[19px] tracking-[-.02em]">cyrus</span>
 );
+
+/* A flat-vector portrait, drawn from the name. These are illustrations, not
+   photographs of anyone: a real face next to a quote nobody gave would be the
+   worst kind of placeholder, so the avatars stay obviously made-up and say so. */
+const SKIN = ["#f0c9a4", "#d9a173", "#a9713f", "#7c4a24", "#e8b48c", "#5c3620"];
+const HAIR = ["#2b2b30", "#4a3320", "#1d1d20", "#6b4226", "#3a2a3f", "#8a8f98"];
+const CLOTH = ["#2f6b4f", "#37506e", "#6b3f52", "#4a4f55", "#7a5321", "#2f5d63"];
+export function Portrait({ name, size = 44, className = "" }: { name: string; size?: number; className?: string }) {
+  const h = hash(name);
+  const skin = SKIN[h % SKIN.length];
+  const hair = HAIR[(h >> 3) % HAIR.length];
+  const cloth = CLOTH[(h >> 6) % CLOTH.length];
+  const style = (h >> 9) % 4;
+  const glasses = (h >> 12) % 3 === 0;
+  const bg = `hsl(${(h >> 4) % 360} 30% 88%)`;
+  const doHair = () => {
+    if (style === 0) return <path d="M20 34c0-9 5-15 12-15s12 6 12 15c0-4-3-6-12-6s-12 2-12 6Z" fill={hair} />;
+    if (style === 1) return <><path d="M19 36c0-10 5-17 13-17s13 7 13 17c0 6-2 9-3 6 1-8-2-12-10-12s-11 4-10 12c-1 3-3 0-3-6Z" fill={hair} /></>;
+    if (style === 2) return <><path d="M20 33c0-9 5-14 12-14s12 5 12 14v3c0-6-4-9-12-9s-12 3-12 9Z" fill={hair} /><circle cx="42" cy="24" r="5" fill={hair} /></>;
+    return <path d="M19 35c1-11 6-16 13-16s12 5 13 16c-2-5-6-7-13-7s-11 2-13 7Z" fill={hair} />;
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden className={`shrink-0 rounded-full ${className}`} role="img">
+      <clipPath id={`pc${h}`}><circle cx="32" cy="32" r="32" /></clipPath>
+      <g clipPath={`url(#pc${h})`}>
+        <rect width="64" height="64" fill={bg} />
+        <path d="M32 44c9 0 16 6 17 14H15c1-8 8-14 17-14Z" fill={cloth} />
+        <rect x="27" y="38" width="10" height="10" rx="4" fill={skin} />
+        <ellipse cx="32" cy="30" rx="12.5" ry="13.5" fill={skin} />
+        {doHair()}
+        <circle cx="27" cy="30.5" r="1.7" fill="#22262a" />
+        <circle cx="37" cy="30.5" r="1.7" fill="#22262a" />
+        <path d="M28.5 36.5c1.6 1.3 5.4 1.3 7 0" stroke="#22262a" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity=".75" />
+        {glasses && <g stroke="#22262a" strokeWidth="1.3" fill="none" opacity=".7"><circle cx="27" cy="30.5" r="4.6" /><circle cx="37" cy="30.5" r="4.6" /><path d="M31.6 30.5h2.8" /></g>}
+      </g>
+      <circle cx="32" cy="32" r="31" fill="none" stroke="currentColor" strokeOpacity=".12" />
+    </svg>
+  );
+}
 
 export function Word({ children }: { children: ReactNode }) {
   return <span className="word-accent">{children}</span>;

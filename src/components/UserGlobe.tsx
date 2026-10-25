@@ -3,7 +3,14 @@
    A large dotted globe rising from the bottom of the panel (in the spirit of
    coddy.tech's hero): a halftone point lattice over hand-authored simplified
    continent polygons, a small robot pet travelling from country to country,
-   and one arrival card that appears where the pet lands.
+   one arrival card that appears where the pet lands, and a calendar ring -
+   twelve months carrying the programs that run in them - orbiting the sphere.
+
+   The ring is not decoration pretending to be data. A month carries a program
+   when one of that program's published phases overlaps the month, read from
+   PROGRAMS in src/data/orgs.ts, and each mark is the program's own GitHub
+   organization avatar. Which months are quiet, and which are crowded, falls
+   out of those calendars.
 
    Honesty rules baked in:
    - Dots are NOT people. The caption says exactly what they are: the countries
@@ -17,9 +24,10 @@
    by hand - the same arithmetic color-mix(in srgb) does) so both themes work
    without a single hex literal and without a dark: variant - the theme flips
    by remapping those variables on <html.light>.
-   No npm additions, no external assets, one JSON fetch. */
+   No npm additions, no external assets beyond the programs' own published
+   GitHub avatars, one JSON fetch. */
 import { useEffect, useRef, useState } from "react";
-import { Logo } from "./ui";
+import { PROGRAMS } from "../data/orgs";
 
 const TAU = Math.PI * 2;
 const D2R = Math.PI / 180;
@@ -199,7 +207,27 @@ const angBetween = (a: Stop, b: Stop) => {
 
 /* the pet is drawn from a 48-unit viewBox but composited at PET css px, so one
    constant sizes the DOM box, the svg and the gap its arrival card keeps. */
-const PET = 132;
+const PET = 118;
+
+/* ── the calendar ring ──────────────────────────────────────────────────
+   Twelve month markers on one orbit around the sphere. A month carries a
+   program when one of that program's published phases overlaps it - phases
+   are decimal month indices (0 = January), so October is 9 and Hacktoberfest's
+   {s: 9, e: 10} lands on it. Marks are the program's own GitHub organization
+   avatar, the same one its program page already links out to. MAX caps the
+   crowded months so the ring stays readable; the pill then says how many more
+   programs are running that month. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MAX_MARKS = 4;
+type RingMark = { id: string; name: string; owner: string };
+const MONTH_PROGRAMS: RingMark[][] = MONTHS.map((_, m) =>
+  PROGRAMS
+    .filter((p) => (p.phases ?? []).some((ph) => ph.s <= m + 0.999 && ph.e >= m + 0.001))
+    .map((p) => ({ id: p.id, name: p.name, owner: p.owner }))
+    .sort((a, b) => a.name.localeCompare(b.name)),
+);
+
+const RING_SPIN = TAU / 150;                /* one orbit every ~2.5 minutes */
 
 export default function UserGlobe() {
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -209,6 +237,13 @@ export default function UserGlobe() {
   const pillNameRef = useRef<HTMLSpanElement | null>(null);
   const pillSubRef = useRef<HTMLSpanElement | null>(null);
   const pillSampleRef = useRef<HTMLDivElement | null>(null);
+  /* the twelve month markers, moved by the same clock as the sphere */
+  const markRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  /* "this month" cannot be read during render: the prerender happens on the
+     build machine's clock, so the highlight is applied after mount. */
+  const [nowMonth, setNowMonth] = useState(-1);
+  useEffect(() => { setNowMonth(new Date().getMonth()); }, []);
 
   /* null = the file never loaded: render the labelled sample list. */
   const [fileData, setFileData] = useState<Parsed | null>(null);
@@ -324,7 +359,7 @@ export default function UserGlobe() {
       };
     };
 
-    let w = 0, h = 0, R = 0, cx = 0, cy = 0, dpr = 1;
+    let w = 0, h = 0, R = 0, cx = 0, cy = 0, dpr = 1, rx = 0, ry = 0;
     const measure = () => {
       w = stage.clientWidth; h = stage.clientHeight;
       dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -334,12 +369,20 @@ export default function UserGlobe() {
          sitting low-centre in the panel. It used to bleed off the bottom edge,
          which left the top half of the panel empty and made the pet look like
          it was standing on the floor rather than in front of the world. */
-      R = Math.max(130, Math.min(w * 0.32, h * 0.34));
+      R = Math.max(140, Math.min(w * 0.36, h * 0.385));
       cx = w / 2;
-      cy = h * 0.5;
+      cy = h * 0.52;
+      /* the calendar orbit: wide enough that a marker clears the sphere's
+         limb, flat enough to read as a ring seen near edge-on */
+      rx = R * 1.17;
+      ry = R * 0.34;
     };
     measure();
     relTheme();
+
+    /* the orbit opens with the current month at the front of the sphere; read
+       on the client, because the build machine's clock is not the visitor's */
+    const ring0 = Math.PI / 2 - new Date().getMonth() * (TAU / 12);
 
     const project = (latDeg: number, lonDeg: number, psi: number) => {
       const cl = Math.cos(latDeg * D2R);
@@ -402,6 +445,20 @@ export default function UserGlobe() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
+      /* the calendar orbit, seen edge-on: the far half is drawn first so the
+         sphere covers it, the near half last so it crosses in front. */
+      const ringOf = (a: number) => ({ x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) });
+      const arc = (from: number, to: number, alpha: number) => {
+        ctx.strokeStyle = `rgba(${th.rim},${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 6]);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, from, to);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      };
+      arc(0, TAU, 0.24);
+
       /* atmosphere halo */
       let g = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.12);
       g.addColorStop(0, `rgba(${th.glow},0)`);
@@ -456,6 +513,27 @@ export default function UserGlobe() {
       ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
 
+      /* the near half of the orbit, painted over the sphere */
+      arc(0, Math.PI, 0.5);
+
+      /* the month markers ride that ellipse. Depth is sin(angle): the bottom
+         half is in front of the earth, the top half behind it, so a marker
+         dims and shrinks as it goes round the back instead of sliding over
+         the face of it. */
+      const ringPsi = ring0 + t * RING_SPIN;
+      for (let i = 0; i < 12; i++) {
+        const el = markRefs.current[i];
+        if (!el) continue;
+        const a = ringPsi + (i * TAU) / 12;
+        const s = Math.sin(a);
+        const f = (s + 1) / 2;
+        const p = ringOf(a);
+        const front = s > 0;
+        el.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) translate(-50%,-50%) scale(${(0.74 + 0.3 * f).toFixed(3)})`;
+        el.style.opacity = (0.14 + 0.86 * Math.pow(f, 1.5)).toFixed(3);
+        el.style.zIndex = front ? "4" : "0";
+      }
+
       /* country pins: the only green on the map, quiet dots on the front face */
       const list = cs();
       for (const c of list) {
@@ -490,11 +568,20 @@ export default function UserGlobe() {
       const half = PET / 2;
       const mv = Math.max(0, Math.min(1, (mp.z - 0.06) / 0.28))
                * win(mp.x, half + 10, half + 62) * (1 - win(mp.x, w - half - 62, w - half - 10));
+      /* the pet walks behind the earth, not across its face: the anchor is
+         pushed out to the limb along the centre-to-country line, so the lower
+         half of the body is hidden by the sphere and the mascot peeks round
+         the edge of the world at every stop */
+      const dx = mp.x - cx, dy = mp.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      const rr = R * 0.955;
+      const apx = cx + (dx / d) * rr;
+      const apy = cy + (dy / d) * rr;
       if (pet) {
         const bob = reduced ? 0 : Math.sin(t * 2.1) * (PET / 48);
         const depth = 0.9 + 0.1 * ((mp.z + 1) / 2);
         pet.style.opacity = mv.toFixed(3);
-        pet.style.transform = `translate(${mp.x.toFixed(1)}px,${(mp.y + bob).toFixed(1)}px) translate(-50%,-84%) scale(${depth.toFixed(3)})`;
+        pet.style.transform = `translate(${apx.toFixed(1)}px,${(apy + bob).toFixed(1)}px) translate(-50%,-50%) scale(${depth.toFixed(3)})`;
       }
       if (pill && pn && ps && psm) {
         const c = list[J.b.i];
@@ -507,11 +594,9 @@ export default function UserGlobe() {
           if (psm.textContent !== sm) psm.textContent = sm;
           psm.style.display = sm ? "block" : "none";
           const pop = reduced ? 1 : 0.92 + 0.08 * easeIO(Math.min(1, J.t / 0.5));
-          const px = Math.max(112, Math.min(w - 112, mp.x));
-          /* the card floats above the pet's antenna: its head sits 84% of PET
-             above the anchor, plus a 10px gap, so it never grows out of the
-             robot's head now that the mascot is this large */
-          const py = Math.max(h * 0.2, Math.min(h * 0.66, mp.y)) - (PET * 0.84 + 10);
+          const px = Math.max(112, Math.min(w - 112, apx));
+          /* the card sits above the half of the pet that clears the limb */
+          const py = Math.max(h * 0.16, Math.min(h * 0.72, apy)) - (PET * 0.6 + 10);
           pill.style.opacity = show.toFixed(3);
           pill.style.transform = `translate(${px.toFixed(1)}px,${py.toFixed(1)}px) translate(-50%,-100%) scale(${pop.toFixed(3)})`;
         } else {
@@ -591,35 +676,44 @@ export default function UserGlobe() {
 
       {/* the globe stage, bleeding to the panel's bottom edge */}
       <div ref={stageRef} className="relative -mx-12 -mb-12 mt-[46px] min-h-[320px] flex-1 self-stretch">
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+        <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full" aria-hidden="true" />
 
-        {/* the pet: original inline SVG robot - the single playful element, and
-            the largest thing on the panel: it reads as a mascot standing in
-            front of the earth, not as a pin stuck on it */}
-        <div ref={petRef} className="pointer-events-none absolute left-0 top-0 opacity-0"
+        {/* the pet: original inline SVG robot, and the largest thing on the
+            panel. It sits under the canvas in the stacking order, so the
+            sphere paints over its lower half and the mascot reads as walking
+            behind the earth rather than stuck on its face */}
+        <div ref={petRef} className="pointer-events-none absolute left-0 top-0 z-0 opacity-0"
           style={{ width: PET, height: PET, color: "var(--color-accent)", filter: "drop-shadow(0 6px 12px color-mix(in srgb, var(--color-coffee) 55%, transparent))" }}
           aria-hidden="true">
           <svg width={PET} height={PET} viewBox="0 0 48 48" fill="none">
-            <path d="M24 12.5V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="24" cy="5" r="2.4" fill="currentColor" />
-            <rect x="10" y="12" width="28" height="26" rx="13" fill="currentColor" />
-            <ellipse cx="18.8" cy="23.4" rx="3.9" ry="4.6" fill="var(--color-foam)" />
-            <ellipse cx="29.2" cy="23.4" rx="3.9" ry="4.6" fill="var(--color-foam)" />
+            {/* a robot, not a pet: a squarish head on a squarish body, a dark
+                visor with two lights behind it, and the site's green on the
+                antenna tip. Drawn in the accent colour so it picks up either
+                theme, and small enough to read as standing on the far side of
+                the world rather than floating in front of it. */}
+            <path d="M24 9.6V5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="24" cy="3.8" r="2.3" fill="var(--color-accent)" />
+            <rect x="11" y="9.6" width="26" height="19" rx="7.5" fill="currentColor" />
+            <rect x="15" y="14.2" width="18" height="9.4" rx="4.7" fill="var(--color-coffee)" />
             <g className="ug-eye">
-              <circle cx="19.6" cy="24.2" r="1.9" fill="var(--color-coffee)" />
-              <circle cx="28.4" cy="24.2" r="1.9" fill="var(--color-coffee)" />
+              <circle cx="20.6" cy="18.9" r="2.5" fill="var(--color-foam)" />
+              <circle cx="27.4" cy="18.9" r="2.5" fill="var(--color-foam)" />
             </g>
-            <circle cx="20.3" cy="23.3" r="0.7" fill="var(--color-foam)" />
-            <circle cx="29.1" cy="23.3" r="0.7" fill="var(--color-foam)" />
-            <path d="M20.8 31.6c1.1 1.1 5.3 1.1 6.4 0" stroke="var(--color-coffee)" strokeWidth="1.7" strokeLinecap="round" />
-            <rect x="15.5" y="37.5" width="6.5" height="4" rx="2" fill="currentColor" />
-            <rect x="26" y="37.5" width="6.5" height="4" rx="2" fill="currentColor" />
+            <rect x="7.4" y="15.6" width="3.6" height="7.4" rx="1.8" fill="currentColor" opacity=".7" />
+            <rect x="37" y="15.6" width="3.6" height="7.4" rx="1.8" fill="currentColor" opacity=".7" />
+            <rect x="20" y="27.8" width="8" height="3.6" fill="currentColor" />
+            <rect x="14" y="30.6" width="20" height="12.4" rx="5.4" fill="currentColor" />
+            <rect x="19.6" y="34" width="8.8" height="5.6" rx="2.2" fill="var(--color-coffee)" opacity=".5" />
+            <rect x="8.6" y="31.6" width="4.6" height="9.4" rx="2.3" fill="currentColor" opacity=".82" />
+            <rect x="34.8" y="31.6" width="4.6" height="9.4" rx="2.3" fill="currentColor" opacity=".82" />
+            <rect x="17" y="42.4" width="5.2" height="4.6" rx="2.1" fill="currentColor" />
+            <rect x="25.8" y="42.4" width="5.2" height="4.6" rx="2.1" fill="currentColor" />
           </svg>
         </div>
 
         {/* the arrival card: country, what the count means, two real orgs */}
         <div ref={pillRef}
-          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-[13px] border border-line bg-card px-2.5 py-[7px] opacity-0 shadow-soft"
+          className="pointer-events-none absolute left-0 top-0 z-[2] whitespace-nowrap rounded-[13px] border border-line bg-card px-2.5 py-[7px] opacity-0 shadow-soft"
           style={{ transform: "translate(-999px,-999px)" }}>
           <div className="flex items-center gap-1.5">
             <i className="shrink-0 rounded-full bg-accent" style={{ width: 6, height: 6 }} aria-hidden />
@@ -630,21 +724,57 @@ export default function UserGlobe() {
             className="mt-[6px] hidden font-mono text-[8.5px] uppercase leading-none tracking-[.12em] text-dim" />
         </div>
 
-        {/* the honest caption: whose this is, and what the dots actually are.
-            bottom-[76px] because the stage bleeds 48px past the panel's bottom
-            padding and the site's fixed "1 Insight" pill lives in that corner */}
-        <div className="absolute bottom-[76px] left-6 max-w-[276px] rounded-[15px] border border-line bg-card px-3.5 py-3 shadow-soft">
-          <div className="flex items-center gap-2">
-            <Logo size={20} />
-            <span className="font-display text-[14.5px] font-extrabold leading-none tracking-[-.02em] text-ink">
-              cyrus<span className="text-accent">.ai</span>
-            </span>
-          </div>
-          <p className="mt-2 text-[11px] leading-[1.55] text-cocoa">
+        {/* the calendar ring: twelve month markers, each carrying the programs
+            whose published phases overlap that month. Positioned by the same
+            clock as the sphere, so they swing behind it and come round again.
+            The images are the programs' own GitHub organization avatars - the
+            same ones their program pages link to - with a monogram fallback if
+            an avatar ever fails to load. */}
+        <div className="pointer-events-none absolute inset-0" role="img"
+          aria-label="A year ringed around the earth: each month shows the open-source programs running in it.">
+          {MONTHS.map((mo, i) => {
+            const marks = MONTH_PROGRAMS[i];
+            const shown = marks.slice(0, MAX_MARKS);
+            const extra = marks.length - shown.length;
+            const here = i === nowMonth;
+            return (
+              <div key={mo} ref={(el) => { markRefs.current[i] = el; }}
+                className="absolute left-0 top-0 flex flex-col items-center gap-[3px] opacity-0 will-change-transform"
+                style={{ transform: "translate(-999px,-999px)" }}>
+                <span className={`font-mono text-[8.5px] font-bold uppercase leading-none tracking-[.16em] ${here ? "text-accent" : "text-cocoa"}`}>
+                  {mo}
+                </span>
+                <span className={`flex items-center rounded-full border bg-card/90 py-[2px] pl-[2px] pr-[5px] shadow-soft ${here ? "border-accent/70" : "border-line"}`}>
+                  <span className="flex -space-x-[5px]">
+                    {shown.map((m) => (
+                      <img key={m.id} src={`https://github.com/${m.owner}.png?size=48`} alt="" title={m.name}
+                        width={15} height={15}
+                        className="h-[15px] w-[15px] rounded-full border border-card/90 bg-liness object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }} />
+                    ))}
+                  </span>
+                  {extra > 0 && (
+                    <span className="ml-[3px] font-mono text-[8px] font-bold leading-none text-dim">+{extra}</span>
+                  )}
+                  {marks.length === 0 && (
+                    <span className="ml-[1px] mr-[2px] font-mono text-[8px] leading-none text-dim">·</span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* the honest caption, as a line of type rather than a card: the
+            panel is a globe and a robot, and a boxed box in the corner was
+            the third rectangle competing with them */}
+        <div className="absolute bottom-[62px] left-7 z-[2] max-w-[300px]">
+          <p className="text-[11px] leading-[1.6] text-cocoa">
             Dots are the countries where tracked open-source organizations publish a
-            location on their public GitHub profile.
+            location on their public GitHub profile. The ring is the year: each month
+            carries the programs whose published phases overlap it.
           </p>
-          <p className="mt-2 font-mono text-[9px] uppercase leading-[1.6] tracking-[.14em] text-dim">
+          <p className="mt-1.5 font-mono text-[9px] uppercase leading-[1.6] tracking-[.14em] text-dim">
             {hasData
               ? <>{fileData.countries} countries · {fileData.orgs} orgs located</>
               : "Sample list · live atlas not loaded"}

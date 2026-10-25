@@ -1,13 +1,10 @@
 "use client"
 /* ══ ProgramDetail.tsx — one open source program, deep ══════ */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useParams } from "@/lib/router";
 import { PROGRAMS } from "../data/orgs";
-import { filterNameOf, loadProgramArchive } from "../lib/programProjects";
-import type { ArchiveEntry, ArchiveRow } from "../lib/programProjects";
-import { TOPIC_ID_OF, useRoster, ARCHIVE_IDS } from "../lib/programRoster";
+import { TOPIC_ID_OF, useRoster } from "../lib/programRoster";
 import { publishesAreas, useProgramOrgs } from "../lib/contriboOrgs";
-import { useMentors, MENTOR_IDS } from "../lib/mentorIndex";
 import { PROGRAM_META, PROGRAM_REPOS } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
 import { PROGRAM_DETAILS, programLink } from "../data/programDetails";
@@ -51,28 +48,6 @@ function MonthBar({ p }: { p: Program }) {
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-/* ── annual bar chart ──────────────────────────────────────── */
-function YearChart({ data, unit }: { data: { year: number; n: number }[]; unit: string }) {
-  const max = Math.max(...data.map((d) => d.n), 1);
-  return (
-    <div>
-      <div className="flex items-end gap-2 h-[150px]">
-        {data.map((d, i) => (
-          <div key={d.year} className="flex-1 flex flex-col items-center justify-end gap-1.5 h-full">
-            <span className="font-mono text-[10px] font-bold text-cocoa">{fmt(d.n)}</span>
-            <i className="w-full rounded-t-[6px] pulse-bar block"
-              style={{ height: `${Math.max(6, (d.n / max) * 100)}%`, background: i === data.length - 1 ? "linear-gradient(180deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 14%, var(--color-card)))" : "linear-gradient(180deg, var(--color-denim), color-mix(in srgb, var(--color-denim) 14%, var(--color-card)))", animationDelay: `${i * 55}ms` }} />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2 mt-2">
-        {data.map((d) => <span key={d.year} className="flex-1 text-center font-mono text-[10px] text-dim">{String(d.year).slice(2)}</span>)}
-      </div>
-      <p className="font-mono text-[10px] uppercase tracking-[.11em] text-dim mt-2.5">in {unit}</p>
     </div>
   );
 }
@@ -156,183 +131,6 @@ function OrgDirectoryBand({ id, topicId, name }: { id: string; topicId?: string;
           {r.meta.note} <span className="text-dim">Source: {r.meta.source}.</span>
         </p>
       )}
-    </section>
-  );
-}
-
-/* ── the mentors named on the program's own record ──
-   The list is the content here; the counts are not. A page that opened with
-   "N distinct names across M projects" asked the reader to care about an
-   archive statistic before showing a single mentor, so the headline is gone
-   and the cards carry their own project counts instead. */
-function MentorSection({ id }: { id: string }) {
-  const m = useMentors(id);
-  const [shown, setShown] = useState(12);
-  if (!m.ready) return null;
-
-  if (!m.program?.mentors) {
-    return (
-      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-        <h2 className="panel-h text-[17px] mb-2">Mentors in the <Word>record</Word></h2>
-        <p className="text-cocoa text-[13px] leading-[1.65]">
-          The project archive we hold for this program names the intern on every row and the
-          organization on most, but no mentor names - so there is no list to show here and no
-          number to invent. The organizer's own pages are the source for who did the mentoring.
-        </p>
-      </section>
-    );
-  }
-
-  const t = m.program;
-  return (
-    <section>
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
-        <div>
-          <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
-            Mentors named in the <Word>record</Word>
-          </h2>
-          <p className="text-cocoa text-[12.5px] mt-1 max-w-[620px] leading-[1.6]">
-            The people {t.label}'s own project rows credit with the mentoring, with the number of
-            archived projects each one appears on. Where the record gives a GitHub account, that is
-            shown; where it does not, no account is guessed.
-          </p>
-        </div>
-        <span className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim border border-line rounded-full px-2.5 py-1">
-          from the project records · {m.generated}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 max-[700px]:grid-cols-1">
-        {t.top.slice(0, shown).map((p) => (
-          <div key={p.name} className="bg-card border border-line rounded-[14px] px-4 py-3 flex items-center gap-3 shadow-soft">
-            <span className="w-[26px] h-[26px] rounded-[8px] bg-clay shrink-0 grid place-items-center font-mono text-[10px] font-bold text-cocoa">
-              {p.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-            </span>
-            <span className="min-w-0 flex-1">
-              <b className="text-[13px] font-semibold block truncate">{p.name}</b>
-              <span className="font-mono text-[9.5px] text-dim block truncate">
-                {p.login ? `@${p.login}`
-                  : p.orgCount ? `${p.orgCount} org${p.orgCount === 1 ? "" : "s"}`
-                  : p.skills?.length ? p.skills.slice(0, 3).join(" ")
-                  : "years not recorded"}
-                {p.years.length ? ` · ${p.years.join(" ")}` : ""}
-              </span>
-            </span>
-            {p.projects > 0 && <b className="font-mono text-[11px] text-accent font-bold shrink-0">{p.projects}</b>}
-          </div>
-        ))}
-      </div>
-
-      {t.top.length > shown && (
-        <button type="button" onClick={() => setShown((s) => s + 24)} className={btn("outline", "md", "mt-5")}>
-          Show more mentors
-        </button>
-      )}
-      {(t.note || m.note) && (
-        <p className="text-cocoa text-[11.5px] leading-[1.6] mt-4">
-          {t.note} {t.capped ? "This is what the API will name, not the program's total." : ""}
-          {!t.note && m.note ? m.note : ""}
-        </p>
-      )}
-    </section>
-  );
-}
-
-
-/* ── the program's own projects ─────────────────────────────────────
-   Read from /data/program-projects/<id>.json, the shard
-   scripts/build-program-projects.mjs writes from the program's published
-   record. The cards and the source line are the content; the counts live on
-   the listing page this section links to. A program with no archive says so
-   instead of showing a padded grid. */
-function ProgramProjects({ id }: { id: string }) {
-  const [arc, setArc] = useState<{ entry: ArchiveEntry; rows: ArchiveRow[] } | null>(null);
-  const [done, setDone] = useState(false);
-  const [shown, setShown] = useState(9);
-
-  useEffect(() => {
-    let go = true;
-    setDone(false);
-    loadProgramArchive(id)
-      .then((r) => { if (go) { setArc(r); setDone(true); } })
-      .catch(() => { if (go) setDone(true); });
-    return () => { go = false; };
-  }, [id]);
-
-  if (!done) {
-    return (
-      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-        <h2 className="panel-h text-[17px]">Projects</h2>
-        <p className="text-cocoa text-[13px] mt-2">Opening this program's own record…</p>
-      </section>
-    );
-  }
-
-  if (!arc) {
-    return (
-      <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-        <h2 className="panel-h text-[17px] mb-2">Projects in this <Word>program</Word></h2>
-        <p className="text-cocoa text-[13px] leading-[1.65]">
-          This program publishes the people it accepted, not a per-project table we can read from
-          here - so this page lists none rather than inventing rows. The organization directory
-          below carries the record we do hold, and the organizer's own site, linked above, is the
-          source for project-level detail.
-        </p>
-      </section>
-    );
-  }
-
-  const { entry, rows } = arc;
-  return (
-    <section>
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
-        <div className="min-w-0">
-          <h2 className="font-display font-extrabold text-[22px] tracking-[-.02em]">
-            Projects in the <Word>record</Word>
-          </h2>
-          <p className="text-cocoa text-[12.5px] mt-1.5 max-w-[680px] leading-[1.6]">
-            Every project this program credits on its own pages, one card each, straight through to
-            the organizer's record for that project.
-            {entry.years.length ? <> · {entry.years[0]}-{entry.years[entry.years.length - 1]}</> : null}
-            <br />
-            <span className="text-dim">Source: {entry.source}</span>
-          </p>
-        </div>
-        <Link to={`/projects?prog=${encodeURIComponent(filterNameOf(id, entry.label))}`} className={btn("outline", "sm")}>
-          Open the full listing
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 max-[980px]:grid-cols-2 max-[620px]:grid-cols-1">
-        {rows.slice(0, shown).map((r) => (
-          <a key={r.key} href={r.url} target="_blank" rel="noopener"
-            className="group bg-card border border-line rounded-[18px] p-[16px] flex flex-col shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift hover:border-accent/45">
-            <h3 className="card-title text-[14.5px] leading-snug line-clamp-2">{r.title}</h3>
-            <p className="font-mono text-[9.5px] uppercase tracking-[.1em] text-dim mt-1.5 truncate">
-              {r.org}{r.year ? ` • ${r.year}` : ""}
-            </p>
-            <p className="text-cocoa text-[12px] leading-[1.55] mt-2.5 line-clamp-3">{r.body || "No description in the record."}</p>
-            <div className="flex gap-1.5 flex-wrap mt-3">
-              {r.lang && <Chip tone="lang">{r.lang}</Chip>}
-              {r.season && <Chip tone="blue">{r.season}</Chip>}
-              {r.tags.slice(0, 2).map((t) => <Chip key={t} tone="cat">{t}</Chip>)}
-              {r.stars > 0 && <Chip tone="stars">★ {fmt(r.stars)}</Chip>}
-            </div>
-            <span className="mt-auto pt-3.5 font-mono text-[10px] uppercase tracking-[.1em] text-accent flex items-center gap-1.5">
-              {r.mentor ? `Mentor: ${r.mentor.split(",")[0]}` : "Open record"}
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M7 17 17 7M9 7h8v8" /></svg>
-            </span>
-          </a>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-4 mt-4 flex-wrap">
-        {rows.length > shown && (
-          <button type="button" onClick={() => setShown((s) => s + 9)} className={btn("outline", "sm")}>
-            Show more projects
-          </button>
-        )}
-      </div>
     </section>
   );
 }
@@ -458,26 +256,6 @@ export default function ProgramDetail() {
             <p className="text-cocoa text-[12.5px] mb-5">Calendar positions for the 2026 cycle - the marker shows October, where you are now.</p>
             <MonthBar p={p} />
           </section>
-
-          {d.projectsPerYear?.length ? (
-            <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-              <h2 className="panel-h text-[17px] mb-1">{d.chartTitle}</h2>
-              <p className="text-cocoa text-[12.5px] mb-5">Program-level totals across recent cycles, blended from organizer reports and archive counts.</p>
-              <YearChart data={d.projectsPerYear} unit={d.chartUnit} />
-            </section>
-          ) : (
-            <section className="bg-card border border-line rounded-[20px] p-6 shadow-soft">
-              <h2 className="panel-h text-[17px] mb-1">{d.chartTitle}</h2>
-              <p className="text-cocoa text-[13px] leading-[1.65] mt-2">
-                {p.name} publishes no per-cycle project table, so this page shows no chart. The
-                organizer's own page, linked above, is the only source for its numbers.
-              </p>
-            </section>
-          )}
-
-          <ProgramProjects id={p.id} />
-
-          {(ARCHIVE_IDS as readonly string[]).includes(p.id) || (MENTOR_IDS as readonly string[]).includes(p.id) ? <MentorSection id={p.id} /> : null}
 
           <OrgDirectoryBand id={p.id} topicId={TOPIC_ID_OF[p.id]} name={p.name} />
 

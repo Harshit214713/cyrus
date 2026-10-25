@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import { StoreProvider } from "@/lib/store";
 import { useLocation } from "@/lib/router";
 import Nav from "@/components/Nav";
@@ -20,34 +21,81 @@ function ScrollManager() {
 }
 
 /* one-time intro curtain: marketing pages only, decided after mount so
-   server HTML never carries it */
+   server HTML never carries it.
+
+   The sequence is the brand, not a spinner: the mark draws itself (Logo's own
+   `draw` pass - ring, then the commit dropping onto its end), the wordmark
+   rises letter by letter behind it, the line of what the site is fades in
+   under that, and the whole curtain lifts. Timed to about two seconds so it
+   reads as an arrival and not a wait, and skipped outright for reduced-motion
+   visitors and for every route inside the application shell. */
+const CURSOR = 2050;                        /* curtain comes down at */
+const WORD = "cyrus";
+/* the same two curves the rest of the site moves on: settle, then leave */
+const EASE_SILK = [0.22, 1, 0.36, 1] as const;
+const EASE_LIFT = [0.76, 0, 0.24, 1] as const;
+
 function Splash({ app }: { app: boolean }) {
-  const [state, setState] = useState<"pending" | "show" | "gone">("pending");
+  const [show, setShow] = useState(false);
+  const [lift, setLift] = useState(false);
+  const reduce = useReducedMotion();
+
+  /* Deciding to play is a one-time question, answered from sessionStorage:
+     StrictMode runs mount effects twice, and the second pass must not restart
+     the curtain. Running the clock is a separate effect keyed on `show`, so
+     the first pass's cleanup can never leave the page covered with no timers
+     left to lift it. */
   useEffect(() => {
-    if (app || sessionStorage.getItem("cyrus-splashed") === "1" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setState("gone");
-      return;
-    }
+    if (app || reduce || sessionStorage.getItem("cyrus-splashed") === "1") return;
     sessionStorage.setItem("cyrus-splashed", "1");
-    setState("show");
+    setShow(true);
+  }, [app, reduce]);
+
+  useEffect(() => {
+    if (!show) return;
     document.body.style.overflow = "hidden";
-    const t1 = setTimeout(() => { document.body.style.overflow = ""; }, 1500);
-    const t2 = setTimeout(() => setState("gone"), 2000);
-    return () => { clearTimeout(t1); clearTimeout(t2); document.body.style.overflow = ""; };
-  }, [app]);
-  if (state !== "show") return null;
+    const t1 = setTimeout(() => setLift(true), CURSOR);
+    const t2 = setTimeout(() => setShow(false), CURSOR + 620);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      document.body.style.overflow = "";
+    };
+  }, [show]);
+
+  const rise: Variants = {
+    hidden: { y: 16, opacity: 0 },
+    on: { y: 0, opacity: 1, transition: { duration: 0.42, ease: EASE_SILK } },
+  };
+  const wordParent: Variants = { hidden: {}, on: { transition: { staggerChildren: 0.05, delayChildren: 0.62 } } };
+
   return (
-    <div className="splash" aria-hidden="true">
-      <div className="flex flex-col items-center gap-5">
-        <div className="splash-mark rounded-[24px]"><Logo size={88} /></div>
-        <div className="splash-word font-display font-extrabold tracking-[-.02em] text-[34px]">
-          cyrus<span className="text-accent">.ai</span>
-        </div>
-        <div className="splash-sub font-mono text-[10.5px] tracking-[.18em] uppercase text-dim">
-          open source · programs · skills
-        </div>
-      </div>
-    </div>
+    <AnimatePresence>
+      {show && (
+        <motion.div className="splash" aria-hidden="true"
+          initial={{ y: 0 }} animate={{ y: lift ? "-100%" : 0 }}
+          transition={{ duration: .62, ease: EASE_LIFT }}>
+          <div className="flex flex-col items-center gap-4">
+            <motion.div initial={{ opacity: 0, scale: .94 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: .5, ease: EASE_SILK }}>
+              <Logo size={92} draw />
+            </motion.div>
+            <motion.div className="flex font-display font-extrabold tracking-[-.03em] text-[38px] leading-none"
+              variants={wordParent} initial="hidden" animate="on">
+              {WORD.split("").map((ch, i) => (
+                <motion.span key={i} variants={rise}>{ch}</motion.span>
+              ))}
+              <motion.span variants={rise} className="text-accent">.ai</motion.span>
+            </motion.div>
+            <motion.p className="font-mono text-[10px] uppercase tracking-[.2em] text-dim"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: .95, duration: .5 }}>
+              open source · programs · skills
+            </motion.p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

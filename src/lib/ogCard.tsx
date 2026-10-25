@@ -83,8 +83,7 @@ function Stamp() {
     >
       <svg width={520} height={520} viewBox="0 0 100 100">
         <path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke={ARC} strokeWidth="11" strokeLinecap="round" />
-        <path
-          d="M76 22c1.6 8.4 5.2 12 13.5 13.6C81.2 37.2 77.6 40.8 76 49.2 74.4 40.8 70.8 37.2 62.4 35.6 70.8 34 74.4 30.4 76 22z"
+        <path d="M68 22.8 79.2 34 68 45.2 56.8 34Z"
           fill={EMBER}
         />
       </svg>
@@ -96,10 +95,9 @@ function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
-        <rect width="100" height="100" rx="27" fill={INK} />
+        <rect width="100" height="100" rx="26" fill={INK} />
         <path d="M68 34a21.5 21.5 0 1 0 .9 32" fill="none" stroke={FOAM} strokeWidth="11" strokeLinecap="round" />
-        <path
-          d="M76 22c1.6 8.4 5.2 12 13.5 13.6C81.2 37.2 77.6 40.8 76 49.2 74.4 40.8 70.8 37.2 62.4 35.6 70.8 34 74.4 30.4 76 22z"
+        <path d="M68 22.8 79.2 34 68 45.2 56.8 34Z"
           fill={EMBER}
         />
       </svg>
