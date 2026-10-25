@@ -4,26 +4,26 @@ import { useState } from "react";
 import type { ReactNode, ImgHTMLAttributes } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
+import { ARMS } from "../lib/mark";
 import type { Level } from "../lib/types";
 
-/* Three arrows turned inward, one every 120 degrees, so the space they leave
-   between them is the mark's other half: a cube corner seen from above. It is
-   drawn with strokes rather than fills for one reason - a stroked path can
-   draw itself, which is what the header and the intro both do with it.
+/* Three solid arrows aimed at the centre - the mark traced from the reference
+   artwork, kept pixel-exact (see src/lib/mark.ts). The top arrow is unique and
+   the two lower arms mirror each other, so the figure has a vertical axis, not
+   three-fold symmetry; every rotation here respects that.
 
-   The colour is `currentColor` on two arms and the brand green on the third,
-   so the same component is correct on a cream page and on a near-black one
-   without a second variant. `tile` puts it on the dark rounded square used by
-   the favicon, the app icons and the social card, where the mark cannot borrow
-   the page's colour.
+   The colour is `currentColor` on the mirrored pair and the brand green on the
+   top arrow, so the same component is correct on a cream page and on a
+   near-black one without a second variant. `tile` puts it on the dark rounded
+   square used by the favicon, the app icons and the social card, where the
+   mark cannot borrow the page's colour.
 
-   `draw` is the entrance: the three arms stroke themselves in turn while the
-   whole mark swings a third of a turn into place. `live` is the idle motion -
-   a slow, continuous rotation - and the inner group answers a hover with a
-   quarter of the same turn. Reduced-motion visitors get the finished, still
+   `draw` is the entrance: the arms fade and lift into place one after another
+   while the whole mark swings a half turn into position. `live` is the idle
+   motion - a slow, continuous rotation - and the inner group answers a hover
+   with half of the same turn. Reduced-motion visitors get the finished, still
    mark, as everywhere else on this site. */
-const ARMS = [0, 120, 240];
-const ARM_D = "M50 11 L50 38 L73 17";
+const ARM_INDEX = [0, 1, 2];
 
 export function Logo({
   size = 30,
@@ -44,19 +44,18 @@ export function Logo({
       className={live && !reduce ? "mark-live" : undefined}>
       {tile && <rect width="100" height="100" rx="26" fill="#0f1214" />}
       <motion.g
-        initial={anim ? { rotate: -120, scale: 0.86 } : false}
+        initial={anim ? { rotate: -180, scale: 0.86 } : false}
         animate={{ rotate: 0, scale: 1 }}
         transition={{ duration: 1.05, ease: easeSilk }}
         style={{ transformBox: "fill-box", transformOrigin: "center" }}>
-        <g className="mark-turn" fill="none" strokeWidth="13" strokeLinejoin="round"
-          style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
-          {ARMS.map((deg, i) => (
-            <motion.path key={deg} d={ARM_D} stroke="currentColor"
-              className={i === 2 ? "text-accent" : undefined}
-              transform={`rotate(${deg} 50 50)`}
-              initial={anim ? { pathLength: 0 } : false}
-              animate={{ pathLength: 1 }}
-              transition={{ delay: 0.1 + i * 0.16, duration: 0.52, ease: easeSilk }}
+        <g className="mark-turn" style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
+          {ARM_INDEX.map((i) => (
+            <motion.path key={i} d={ARMS[i]} fill="currentColor"
+              className={i === 0 ? "text-accent" : undefined}
+              initial={anim ? { opacity: 0, scale: 0.72 } : false}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 + i * 0.14, duration: 0.5, ease: easeSilk }}
+              style={{ transformBox: "fill-box", transformOrigin: "center" }}
             />
           ))}
         </g>

@@ -555,7 +555,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 .mark-live { animation: markSpin 26s linear infinite; }
 @keyframes markSpin { to { transform: rotate(360deg); } }
 .mark-turn { transition: transform .6s var(--ease-silk); }
-a:hover .mark-turn, button:hover .mark-turn { transform: rotate(120deg); }
+a:hover .mark-turn, button:hover .mark-turn { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) {
   .mark-live { animation: none; }
   .mark-turn { transition: none; }

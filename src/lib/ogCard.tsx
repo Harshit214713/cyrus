@@ -19,16 +19,14 @@ const DIM = "#71787e";
 const RULE = "#2a2d31";
 const ARC = "#3f454a";
 const ACCENT = "#4ade80";
-const EMBER = "#86efac";
 const RUST = "#7ee7a4";
 const FOAM = "#eceef0";
 /* the mark's own plate - the same near-black the favicon tile uses. It is NOT
    PAPER: the card is dark, so a tile that borrows the page colour disappears,
    and ink-coloured arms on an ink-coloured tile disappear with it. */
 const TILE = "#0f1214";
-/* the brand mark, three arrows turned inward - the same figure Logo() draws */
-const OG_ARM_D = "M50 11 50 38 73 17";
-const OG_ARMS = [0, 120, 240];
+/* the brand mark - the same three traced arrows Logo() draws */
+import { ARMS as OG_ARMS } from "@/lib/mark";
 
 const FONT_DIR = join(process.cwd(), "public", "assets", "fonts");
 let cached: { regular: ArrayBuffer; display: ArrayBuffer } | null = null;
@@ -89,9 +87,9 @@ function Stamp() {
       }}
     >
       <svg width={520} height={520} viewBox="0 0 100 100">
-        <g fill="none" strokeWidth="13" strokeLinejoin="round">
-          {OG_ARMS.map((deg, i) => (
-            <path key={deg} d={OG_ARM_D} stroke={i === 2 ? EMBER : ARC} transform={`rotate(${deg} 50 50)`} />
+        <g transform="translate(-10 -10) scale(1.2)">
+          {OG_ARMS.map((d, i) => (
+            <path key={i} d={d} fill={i === 0 ? ACCENT : ARC} />
           ))}
         </g>
       </svg>
@@ -104,9 +102,9 @@ function Mark() {
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
         <rect width="100" height="100" rx="26" fill={TILE} />
-        <g fill="none" strokeWidth="13" strokeLinejoin="round">
-          {OG_ARMS.map((deg, i) => (
-            <path key={deg} d={OG_ARM_D} stroke={i === 2 ? EMBER : FOAM} transform={`rotate(${deg} 50 50)`} />
+        <g transform="translate(7 7) scale(0.86)">
+          {OG_ARMS.map((d, i) => (
+            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} />
           ))}
         </g>
       </svg>
