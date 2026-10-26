@@ -4,26 +4,33 @@ import { useState } from "react";
 import type { ReactNode, ImgHTMLAttributes } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
-import { ARMS } from "../lib/mark";
+import { FACETS } from "../lib/mark";
 import type { Level } from "../lib/types";
 
-/* Three solid arrows aimed at the centre - the mark traced from the reference
-   artwork, kept pixel-exact (see src/lib/mark.ts). The top arrow is unique and
-   the two lower arms mirror each other, so the figure has a vertical axis, not
-   three-fold symmetry; every rotation here respects that.
+/* A die seen corner-on: a rounded hexagon cut into three faces by a Y seam.
+   No numbers and no letters - the faces and the channel between them are the
+   whole mark, and the geometry is generated rather than traced (see
+   src/lib/mark.ts). It is exactly three-fold symmetric, so a third of a turn
+   puts it back where it started; that is the rotation the hover and the intro
+   use, and it is why the faces appear to trade places under a cursor.
 
-   The colour is `currentColor` on the mirrored pair and the brand green on the
-   top arrow, so the same component is correct on a cream page and on a
-   near-black one without a second variant. `tile` puts it on the dark rounded
-   square used by the favicon, the app icons and the social card, where the
-   mark cannot borrow the page's colour.
+   The colour is `currentColor` on the two lower faces - the shadowed one at
+   partial opacity, so the mark reads as a solid catching light - and the brand
+   green on the top face. That makes one component correct on a cream page and
+   on a near-black one. `tile` lays it on the near-black rounded square the
+   favicon, the app icons and the social card use, where the mark cannot borrow
+   the page's colour.
 
-   `draw` is the entrance: the arms fade and lift into place one after another
-   while the whole mark swings a half turn into position. `live` is the idle
-   motion - a slow, continuous rotation - and the inner group answers a hover
-   with half of the same turn. Reduced-motion visitors get the finished, still
-   mark, as everywhere else on this site. */
-const ARM_INDEX = [0, 1, 2];
+   `draw` is the entrance: the three faces slide in from just outside their own
+   corners and meet in the middle while the whole mark swings a third of a turn
+   into place. `live` is the idle motion - a slow, continuous rotation - and the
+   inner group answers a hover with a third of the same turn. Reduced-motion
+   visitors get the finished, still mark, as everywhere else on this site. */
+const FACE_IN = [
+  [-0.5, -0.866],
+  [-0.5, 0.866],
+  [1, 0],
+];
 
 export function Logo({
   size = 30,
@@ -42,20 +49,21 @@ export function Logo({
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true"
       className={live && !reduce ? "mark-live" : undefined}>
-      {tile && <rect width="100" height="100" rx="26" fill="#0f1214" />}
+      {tile && <rect width="100" height="100" rx="24" fill="#0f1214" />}
       <motion.g
-        initial={anim ? { rotate: -180, scale: 0.86 } : false}
+        initial={anim ? { rotate: -120, scale: 0.9 } : false}
         animate={{ rotate: 0, scale: 1 }}
         transition={{ duration: 1.05, ease: easeSilk }}
-        style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+        style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
         <g className="mark-turn" style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
-          {ARM_INDEX.map((i) => (
-            <motion.path key={i} d={ARMS[i]} fill="currentColor"
-              className={i === 0 ? "text-accent" : undefined}
-              initial={anim ? { opacity: 0, scale: 0.72 } : false}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 + i * 0.14, duration: 0.5, ease: easeSilk }}
-              style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          {FACETS.map((d, i) => (
+            <motion.path key={i} d={d}
+              fill={tile ? (i === 0 ? "#4ade80" : "#eceef0") : "currentColor"}
+              className={!tile && i === 0 ? "text-accent" : undefined}
+              opacity={i === 2 ? 0.55 : 1}
+              initial={anim ? { x: FACE_IN[i][0] * 9, y: FACE_IN[i][1] * 9, opacity: 0 } : false}
+              animate={{ x: 0, y: 0, opacity: i === 2 ? 0.55 : 1 }}
+              transition={{ delay: 0.12 + i * 0.13, duration: 0.62, ease: easeSilk }}
             />
           ))}
         </g>
@@ -65,7 +73,7 @@ export function Logo({
 }
 
 export const Brand = () => (
-  <span className="font-display font-extrabold text-[19px] tracking-[-.02em]">cyrus</span>
+  <span className="font-display font-extrabold text-[20px] tracking-[-.025em]">cyrus</span>
 );
 
 /* A flat-vector portrait, drawn from the name. These are illustrations, not

@@ -35,7 +35,7 @@ export default function Footer() {
       <div className="max-w-[1240px] mx-auto px-6">
         <div className="grid grid-cols-[1.6fr_repeat(4,1fr)] max-[1020px]:grid-cols-2 gap-10 pt-16 pb-11">
           <div>
-            <Link to="/" className="flex items-center gap-2.5 text-foam"><Logo /><Brand /></Link>
+            <Link to="/" className="flex items-center gap-2.5 text-foam"><Logo size={34} /><Brand /></Link>
             <p className="text-[13.5px] leading-[1.7] mt-3.5 max-w-[300px]">
               Open-source programs, the issues that are actually open in them, and the repository context you need before you touch one.
             </p>

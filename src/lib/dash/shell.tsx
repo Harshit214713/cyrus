@@ -206,7 +206,7 @@ export function DashShell({ dash, active, children }: { dash: Dash; active: stri
             <Ic d={DP.collapse} size={16} />
           </button>
           <Link to="/dashboard" className="flex items-center gap-2.5 shrink-0 min-w-0">
-            <Logo size={30} />
+            <Logo size={34} />
             <span className="font-display font-extrabold text-[17px] tracking-[-.02em]">cyrus<span className="text-accent">.ai</span></span>
           </Link>
           <span className="hidden md:inline-flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[.14em] text-dim border border-line rounded-full px-2.5 py-1">
@@ -291,7 +291,7 @@ export function DashShell({ dash, active, children }: { dash: Dash; active: stri
             <div onClick={() => setMenu(false)} aria-hidden className="lg:hidden fixed inset-0 z-[70] bg-black/55 backdrop-blur-[3px]" style={{ animation: "fadeIn .2s ease both" }} />
             <aside role="dialog" aria-label="Board menu" className="lg:hidden fixed top-0 left-0 bottom-0 z-[75] w-[min(84vw,300px)] bg-sand border-r border-line flex flex-col" style={{ animation: "sheetIn .3s cubic-bezier(.32,.9,.35,1) both" }}>
               <div className="flex items-center gap-2.5 h-[58px] px-4 border-b border-line shrink-0">
-                <Logo size={28} />
+                <Logo size={32} />
                 <b className="font-display font-extrabold text-[16px] tracking-[-.02em]">cyrus<span className="text-accent">.ai</span></b>
                 <button onClick={() => setMenu(false)} aria-label="Close menu" className="ml-auto w-[32px] h-[32px] grid place-items-center rounded-[9px] border border-line text-cocoa hover:text-ink cursor-pointer">
                   <Ic d={DP.x} size={14} />

@@ -87,7 +87,7 @@ function Splash({ app }: { app: boolean }) {
               />
               <motion.div initial={{ opacity: 0, scale: 0.72 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: .7, ease: EASE_SILK }}>
-                <Logo size={92} draw />
+                <Logo size={104} draw />
               </motion.div>
             </div>
             <motion.div className="flex font-display font-extrabold tracking-[-.03em] text-[38px] leading-none"

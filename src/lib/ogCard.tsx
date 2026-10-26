@@ -9,6 +9,8 @@ import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { OgCard as OgCardData } from "@/lib/ogContent";
+/* the brand mark - the same three die faces Logo() draws */
+import { FACETS as OG_FACETS, SILHOUETTE as OG_HEX } from "@/lib/mark";
 
 const PAPER = "#0e0f10";
 const CREAM = "#17191b";
@@ -25,8 +27,6 @@ const FOAM = "#eceef0";
    PAPER: the card is dark, so a tile that borrows the page colour disappears,
    and ink-coloured arms on an ink-coloured tile disappear with it. */
 const TILE = "#0f1214";
-/* the brand mark - the same three traced arrows Logo() draws */
-import { ARMS as OG_ARMS } from "@/lib/mark";
 
 const FONT_DIR = join(process.cwd(), "public", "assets", "fonts");
 let cached: { regular: ArrayBuffer; display: ArrayBuffer } | null = null;
@@ -79,8 +79,8 @@ function Stamp() {
     <div
       style={{
         position: "absolute",
-        right: -34,
-        bottom: -132,
+        right: -96,
+        bottom: -124,
         width: 520,
         height: 520,
         display: "flex",
@@ -88,8 +88,9 @@ function Stamp() {
     >
       <svg width={520} height={520} viewBox="0 0 100 100">
         <g transform="translate(-10 -10) scale(1.2)">
-          {OG_ARMS.map((d, i) => (
-            <path key={i} d={d} fill={i === 0 ? ACCENT : ARC} />
+          <path d={OG_HEX} fill={ARC} />
+          {OG_FACETS.map((d, i) => (
+            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 2 ? 0.55 : 1} />
           ))}
         </g>
       </svg>
@@ -101,10 +102,10 @@ function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
-        <rect width="100" height="100" rx="26" fill={TILE} />
-        <g transform="translate(7 7) scale(0.86)">
-          {OG_ARMS.map((d, i) => (
-            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} />
+        <rect width="100" height="100" rx="24" fill={TILE} />
+        <g transform="translate(6 6) scale(0.88)">
+          {OG_FACETS.map((d, i) => (
+            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 2 ? 0.55 : 1} />
           ))}
         </g>
       </svg>
