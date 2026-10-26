@@ -5,7 +5,7 @@
    contributors, the projects and orgs behind them, and the questions
    a first-time visitor actually asks. No hackathons, no artifacts.
    ════════════════════════════════════════════════════════════ */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Link } from "@/lib/router";
@@ -16,7 +16,7 @@ import { CRAWL } from "../data/crawlStats";
 import { STATS } from "../lib/siteStats";
 import type { Program } from "../lib/types";
 import { avatarOf, fmt, byStars, CAT_META, reduceMotion } from "../lib/util";
-import { Word, SectionTag, btn, OrgImg, Chip, Portrait } from "../components/ui";
+import { Word, SectionTag, btn, OrgImg, Portrait } from "../components/ui";
 import { useStore } from "../lib/store";
 
 /* ── shared bits ──────────────────────────────────────────── */
@@ -211,85 +211,56 @@ function Timeline() {
 /* ── the contributor roadmap ──────────────────────────────────
    Six steps in the order a contributor actually walks them, and every one of
    them is a screen that exists on the board. The strip across the top is the
-   sequence; the panel underneath is whichever step you picked. The rows on
-   the right are read from the same catalog the pages read, so the preview is
-   a real slice of data rather than a mockup with invented numbers. */
-const STEP_ROWS = {
-  orgs: () => [...ORGS].sort(byStars).slice(0, 4).map((o) => ({
-    t: o.name, m: `${fmt(o.stars)} stars · ${fmt(o.issues)} open issues`, c: `${fmt(o.repos)} repos`,
-  })),
-  repos: () => [...REPOS].sort(byStars).slice(0, 4).map((r) => ({
-    t: r.repo, m: `${r.lang} · ${fmt(r.issues)} open issues`, c: r.license,
-  })),
-  setup: () => [
-    { t: "git clone", m: "the repository behind the issue you saved", c: "step 1" },
-    { t: "git switch -c", m: "a branch named for the issue", c: "step 2" },
-    { t: "pnpm install && pnpm dev", m: "the project's own commands, read from its manifest", c: "step 3" },
-    { t: "git push -u origin", m: "and the compare link, opened for you", c: "step 4" },
-  ],
-  docs: () => [
-    { t: "Summary", m: "what the change does, in the first line", c: "section" },
-    { t: "What changed", m: "one bullet per file the diff touched", c: "section" },
-    { t: "How to test it", m: "the commands a reviewer can paste", c: "section" },
-    { t: "Checklist", m: "matched against the repo's own contributing guide", c: "section" },
-  ],
-  review: () => [
-    { t: "Opened", m: "the pull request, with its linked issue", c: "you" },
-    { t: "Review", m: "comments from the maintainers, read on GitHub", c: "them" },
-    { t: "Changes", m: "push more commits; the thread stays put", c: "you" },
-    { t: "Merged", m: "counted on the leaderboard, dated and linked", c: "done" },
-  ],
-  money: () => PROGRAMS.filter((p) => p.pay !== "Unpaid" && !/unpaid/i.test(p.pay)).slice(0, 4)
-    .map((p) => ({ t: p.name, m: p.pay, c: p.status })),
-};
-
+   sequence; the panel underneath is whichever step you picked. On the right
+   is the ink loop - the one decorative thing on this page, silent and
+   looping, held back until the section scrolls into view. */
 type StepId = "lane" | "setup" | "issue" | "pr" | "merge" | "funded";
 const STEPS: {
   id: StepId; label: string; sub: string; icon: keyof typeof ICONS;
   eyebrow: string; title: string; body: string; checks: string[];
-  cta: string; to: string; path: string; rows: keyof typeof STEP_ROWS;
+  cta: string; to: string;
 }[] = [
   {
     id: "lane", label: "Pick a lane", sub: "Organizations", icon: "board", eyebrow: "Step 1 · Choose",
     title: "Start with the project, not the issue",
     body: "An issue is only worth taking if the repository behind it is worth a week of your time. Sort the organizations by the things you can actually check.",
     checks: ["Live counts from each organization's public GitHub profile", "Stack, license and how recently the work moved", "No sponsored placement, no ranking you can buy"],
-    cta: "Open the directory", to: "/organizations", path: "/organizations", rows: "orgs",
+    cta: "Open the directory", to: "/organizations",
   },
   {
     id: "setup", label: "Set it up", sub: "Git starter", icon: "repo", eyebrow: "Step 2 · Build",
     title: "The clone-to-first-commit part, written out",
     body: "Every project has its own habits. The starter reads the repository's manifest and gives you the commands for that one, in order, so setup stops being the reason you never started.",
     checks: ["Branch naming that matches the issue you claimed", "Install and dev commands taken from the project itself", "The compare link ready when your first commit lands"],
-    cta: "Open the git starter", to: "/dashboard/gitstart", path: "/dashboard/gitstart", rows: "setup",
+    cta: "Open the git starter", to: "/dashboard/gitstart",
   },
   {
     id: "issue", label: "Find the issue", sub: "Issue finder", icon: "issue", eyebrow: "Step 3 · Claim",
     title: "Good first issues you can still take",
     body: "Half of the advice on the internet is a list of issues nobody assigned anyone to. This one says which are claimed, locked, stale, or already have a pull request pointing at them.",
     checks: ["Assignment and lock state, shown on the card", "How long since the thread moved", "Filtered by language, size and difficulty estimate"],
-    cta: "Find an issue", to: "/issues", path: "/issues", rows: "repos",
+    cta: "Find an issue", to: "/issues",
   },
   {
     id: "pr", label: "Open the pull", sub: "Draft studio", icon: "tray", eyebrow: "Step 4 · Ship",
     title: "Write the description once, properly",
     body: "The pull request that gets read is the one that gets merged. The studio drafts the sections maintainers ask for from the diff and the repository's own contributing guide.",
     checks: ["Summary, changes, test steps and checklist", "Templates read from the target repository", "Nothing is posted without you pressing the button"],
-    cta: "Open the studio", to: "/dashboard/drafts", path: "/dashboard/drafts", rows: "docs",
+    cta: "Open the studio", to: "/dashboard/drafts",
   },
   {
     id: "merge", label: "Get it merged", sub: "Leaderboard", icon: "merged", eyebrow: "Step 5 · Land",
     title: "Track the review without living in your inbox",
     body: "Saved issues and repositories tell you what moved while you were away, and the leaderboard keeps the merged work in one dated list instead of twelve browser tabs.",
     checks: ["Merged, open and reviewed counted separately", "A window you set, not a window we picked", "Every row links back to the thread on GitHub"],
-    cta: "See the leaderboard", to: "/leaderboard", path: "/leaderboard", rows: "review",
+    cta: "See the leaderboard", to: "/leaderboard",
   },
   {
     id: "funded", label: "Get funded", sub: "Programs", icon: "sponsor", eyebrow: "Step 6 · Apply",
     title: "Turn the merged work into a paid season",
     body: "The programs that pay stipends run on published calendars. Their windows, their organization lists and their project records are on the same page as the issues you already worked on.",
     checks: [`${PROGRAMS.length} mentored programs with their real windows`, "Each program's own archived project record", "Application dates you can put in your calendar"],
-    cta: "Browse the programs", to: "/programs", path: "/programs", rows: "money",
+    cta: "Browse the programs", to: "/programs",
   },
 ];
 
@@ -302,10 +273,29 @@ function Cross({ pos }: { pos: string }) {
   );
 }
 
+/* The loop only runs while the plate is on screen and the visitor has not
+   asked for less motion. preload="none" plus this means the 245 KB never
+   downloads for anyone who scrolls past the section too fast to see it. */
+function useInkLoop<T extends HTMLVideoElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.pause(); return; }
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) void v.play().catch(() => {}); else v.pause(); },
+      { threshold: 0.25 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
 function Roadmap() {
   const [step, setStep] = useState<StepId>("lane");
   const s = STEPS.find((x) => x.id === step)!;
-  const rows = STEP_ROWS[s.rows]();
+  const vid = useInkLoop();
   return (
     <Section id="roadmap">
       <Head tag="The contributor roadmap" title={<>Six steps from an empty <Word>weekend</Word> to merged.</>}
@@ -355,28 +345,19 @@ function Roadmap() {
             <Link to={s.to} className={`${btn("dark", "md")} mt-9`}>{s.cta}</Link>
           </div>
 
-          {/* the preview: real rows, read from the same catalog the page uses */}
+          {/* the plate: the supplied ink loop, silent and looping */}
           <div className="px-8 py-12 max-[980px]:px-6 max-[980px]:py-9">
-            <div className="rounded-[16px] border border-line bg-card shadow-lift overflow-hidden">
-              <div className="flex items-center gap-2.5 border-b border-dashed border-line px-4 py-3">
-                <span className="h-[7px] w-[7px] rounded-full bg-accent" aria-hidden />
-                <span className="font-mono text-[10.5px] tracking-[.06em] text-cocoa">{s.path}</span>
-                <span className="ml-auto font-mono text-[9px] uppercase tracking-[.12em] text-dim">from the live catalog</span>
-              </div>
-              <ul className="grid">
-                {rows.map((r, i) => (
-                  <li key={r.t + i} className={`flex items-center gap-3 px-4 py-3.5 ${i ? "border-t border-dashed border-liness" : ""}`}>
-                    <span className="min-w-0 flex-1">
-                      <b className="block truncate font-mono text-[12px] font-semibold text-ink">{r.t}</b>
-                      <span className="block truncate text-[11.5px] text-cocoa mt-0.5">{r.m}</span>
-                    </span>
-                    <Chip>{r.c}</Chip>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <figure className="relative m-0 mx-auto max-w-[560px] overflow-hidden rounded-[16px] border border-line bg-[#050607] shadow-lift">
+              <video ref={vid} className="block aspect-square w-full object-cover"
+                src="/roadmap-demo.mp4" poster="/roadmap-demo-poster.jpg"
+                width={600} height={600} muted loop playsInline preload="none" aria-hidden />
+              <figcaption className="absolute inset-x-0 bottom-0 flex items-center gap-2 border-t border-white/10 bg-black/50 px-4 py-2.5">
+                <span className="h-[6px] w-[6px] rounded-full bg-accent" aria-hidden />
+                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-white/70">Silent loop · 2.5 seconds</span>
+              </figcaption>
+            </figure>
             <p className="font-mono text-[9.5px] uppercase leading-[1.8] tracking-[.1em] text-dim mt-4">
-              Preview rows are the first entries of that page today, not a fixed illustration.
+              Pick a step above - the panel on the left is the part that changes.
             </p>
           </div>
         </div>
