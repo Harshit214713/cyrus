@@ -311,7 +311,7 @@ export default function Organizations() {
 
       <section className={`${W} pt-6`}>
         <div className="grid grid-cols-[1fr_210px_210px_190px] gap-3.5 max-[760px]:grid-cols-1">
-          <input className={fin} placeholder="Search organizations - “kernel”, “ai”, “maps”…" value={q} onChange={(e) => setQUrl(e.target.value)} />
+          <input className={fin} aria-label="Search organizations" placeholder="Search organizations - “kernel”, “ai”, “maps”…" value={q} onChange={(e) => setQUrl(e.target.value)} />
           <select className={`${fin} select-warm pr-8`} value={sector} onChange={(e) => setSectorUrl(e.target.value)} aria-label="Field">
             <option value="all">All fields</option>
             {SECTOR_FACETS.map((s) => <option key={s.value} value={s.value}>{s.value} ({s.n})</option>)}

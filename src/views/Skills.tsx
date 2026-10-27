@@ -186,8 +186,8 @@ export default function Skills() {
         {/* ── filter rail ── */}
         <aside className="sticky top-[86px] max-[980px]:static max-h-[calc(100vh-110px)] overflow-y-auto max-[980px]:max-h-none bg-card border border-line rounded-[22px] p-[22px] shadow-soft grid gap-5">
           <div>
-            <span className={label}>Search</span>
-            <input className={fin} placeholder="name, tag, description…" value={q} onChange={(e) => { setQ(e.target.value); setShown(48); }} />
+            <label htmlFor="skills-search" className={label}>Search</label>
+            <input id="skills-search" className={fin} placeholder="name, tag, description…" value={q} onChange={(e) => { setQ(e.target.value); setShown(48); }} />
           </div>
           <div>
             <span className={label}>What do you want to do</span>
@@ -275,6 +275,10 @@ export default function Skills() {
 
           {list.length ? (
             <>
+              {/* names the results block, so the h1 -> card h3 jump a heading
+                  rotor would otherwise walk straight through is now a ladder:
+                  page, results, project. */}
+              <h2 className="sr-only">Matching skills</h2>
               <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
                 {list.slice(0, shown).map((r) => <PCard key={r.repo} r={r} />)}
               </div>

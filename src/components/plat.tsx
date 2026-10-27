@@ -33,7 +33,7 @@ export const Cross = () => (
 export const TONES: Record<string, string> = {
   rust: "text-rust bg-peach border-accent/25",
   leaf: "text-leaf bg-leaf/10 border-leaf/25",
-  honey: "text-[#a97b1f] bg-honey/12 border-honey/40",
+  honey: "text-honey bg-honey/12 border-honey/40",
   denim: "text-denim bg-denim/10 border-denim/25",
   plum: "text-plum bg-plum/10 border-plum/25",
   brick: "text-brick bg-brick/10 border-brick/25",

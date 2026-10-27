@@ -29,7 +29,11 @@
   --color-rule: #3c3c3c;
   --color-ink: #f0f0f0;
   --color-cocoa: #a3a3a3;
-  --color-dim: #747474;
+  /* The quiet end of the text ramp, and it has a floor: on these near-black
+     surfaces #747474 measured 3.6:1, which is unreadable at the 9-12px sizes
+     the eyebrows and stat labels actually use. #8c8c8c is the same grey, one
+     step up, at 5.4:1 - still recedes behind cocoa, still passes AA small. */
+  --color-dim: #8c8c8c;
 
   /* ── hero horizon ridges (see HorizonBackdrop.tsx) ──
      far catches the sky, near sinks back into paper. Held a few steps
@@ -67,7 +71,10 @@
   --color-roast: #282828;
   --color-foam: #f0f0f0;
   --color-steam: #9a9a9a;
-  --color-dimdk: #6b7280;
+  /* the muted blue-grey for text that sits on the coffee/island bands;
+     #6b7280 was 3.6:1 on #0d0d0d, so the footer column labels and code-panel
+     line numbers were the quietest text on the page. */
+  --color-dimdk: #7d8593;
 
   /* next/font declares --font-jakarta, --font-inter, --font-jbmono and
      --font-signature on <html> and ships the files from our own origin; the
@@ -131,18 +138,23 @@
   --color-rule: #b6bcc2;
   --color-ink: #0f1214;
   --color-cocoa: #4b5158;
-  --color-dim: #868d94;
-  --color-accent: #16a34a;
-  --color-accentd: #15803d;
-  --color-ember: #22c55e;
-  --color-peach: #dcfce7;
-  --color-rust: #15803d;
+  --color-dim: #626a73;
+  /* Light mode's green is the dark mode's green, two steps down the scale.
+     #16a34a measured 3.3:1 on white and 3.0:1 on the mint chip it sits in -
+     and in this theme the accent is not decoration, it is the number, the
+     link and the button label. #166534 keeps the hue and clears 6:1, so the
+     same component code is legible in both themes. */
+  --color-accent: #166534;
+  --color-accentd: #14532d;
+  --color-ember: #15803d;
+  --color-peach: #e8f7ee;
+  --color-rust: #14532d;
   --color-accentfg: #ffffff;
-  --color-leaf: #16a34a;
-  --color-denim: #2563eb;
-  --color-plum: #7c3aed;
-  --color-brick: #dc2626;
-  --color-honey: #b45309;
+  --color-leaf: #166534;
+  --color-denim: #1d4ed8;
+  --color-plum: #6d28d9;
+  --color-brick: #b91c1c;
+  --color-honey: #92400e;
   --color-coffee: #101112;
   --color-bean: #16181a;
   --color-bark: #1d2023;
@@ -182,6 +194,26 @@ html.light { color-scheme: light; }
 /* theme-aware hairline colour for the page background grids */
 html { --gl: rgba(236, 238, 240, 0.055); }
 html.light { --gl: rgba(15, 18, 20, 0.05); }
+
+/* The island bands (footer, companies panel, testimonials rail, closing CTA,
+   program headers) stay graphite in light mode - they are the one dark thing
+   in that theme. Text inside them cannot use the light theme's darkened
+   accent: #166534 on #101112 measured 2.4:1. A band that keeps a dark fill
+   carries `on-dark` and re-adopts the dark accent family locally, so the same
+   component code reads correctly in both themes. */
+.light .on-dark {
+  --color-accent: #4ade80;
+  --color-accentd: #22c55e;
+  --color-ember: #86efac;
+  --color-peach: #10241a;
+  --color-rust: #7ee7a4;
+  --color-accentfg: #07150c;
+  --color-leaf: #4ade80;
+  --color-denim: #60a5fa;
+  --color-plum: #a78bfa;
+  --color-brick: #f87171;
+  --color-honey: #fbbf24;
+}
 body { @apply bg-paper text-ink font-sans antialiased; overflow-x: clip; }
 
 /* ── display typography polish ────────────────────────────────

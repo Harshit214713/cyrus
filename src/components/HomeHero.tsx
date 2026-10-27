@@ -95,7 +95,7 @@ const StatLine = ({ k, v }: { k: string; v: string }) => (
 function IssuesPanel() {
   return (
     <>
-      <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Issue finder</h3>
+      <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Issue finder</h2>
       <p className="text-[10.5px] md:text-[11px] leading-[1.55] text-dim mt-1 md:mt-0.5">
         <b className="text-accent font-semibold">{fmt(CRAWL.issues)}</b> open issues from {fmt(CRAWL.reposWithIssues)} repositories.
         <span className="hidden md:inline"> Snapshot {CRAWL.crawledAt}.</span>
@@ -149,7 +149,7 @@ function IssuesPanel() {
 function OrgsPanel() {
   return (
     <>
-      <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Organizations</h3>
+      <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Organizations</h2>
       <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.orgs)} profiled from their public GitHub record, every one named by a program.</p>
       <div className="grid grid-cols-2 gap-2 mt-3">
         {TOP_ORGS.map((o, k) => (
@@ -177,7 +177,7 @@ function BoardPanel() {
   return (
     <>
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">PR leaderboard</h3>
+        <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">PR leaderboard</h2>
         <span className="font-mono text-[9px] uppercase tracking-[.1em] text-dim">merged · all time</span>
       </div>
       <div className="grid gap-1.5 mt-3">
@@ -207,7 +207,7 @@ const PSTATUS: Record<string, string> = {
 function ProgramsPanel() {
   return (
     <>
-      <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Programs</h3>
+      <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Programs</h2>
       <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{PROGRAMS.length} open-source programs on one calendar.</p>
       <div className="grid gap-1.5 mt-3">
         {TOP_PROGS.map((p, k) => (
@@ -228,7 +228,7 @@ function ProgramsPanel() {
 function ProjectsPanel() {
   return (
     <>
-      <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Project catalog</h3>
+      <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Project catalog</h2>
       <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.catalog)} repositories indexed by language, topic and stars.</p>
       <div className="grid gap-1.5 mt-3">
         {TOP_REPOS.map((r, k) => {
@@ -254,7 +254,7 @@ function CopilotPanel() {
   const hits = useMemo(() => matches(picked), [picked]);
   return (
     <>
-      <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Co-pilot</h3>
+      <h2 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Co-pilot</h2>
       <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">Pick what you already know. It shortlists repositories asking for exactly that.</p>
       <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
         {SKILLS.map((s) => {

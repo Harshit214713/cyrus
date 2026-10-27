@@ -137,7 +137,7 @@ export default function Trust() {
         <Rule />
         {/* ── snapshot ledger stats ── */}
         <section className={`${W} mt-[54px]`}>
-          <div className="rounded-[26px] bg-coffee text-foam border border-bean shadow-lift px-8 py-10">
+          <div className="on-dark rounded-[26px] bg-coffee text-foam border border-bean shadow-lift px-8 py-10">
             <p className="text-center font-mono text-[10.5px] font-bold tracking-[.18em] uppercase text-ember mb-8">The current snapshot, in plain numbers</p>
             <div className="grid grid-cols-5 gap-6 text-center max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
               {[

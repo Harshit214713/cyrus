@@ -193,7 +193,7 @@ export default function ProgramOrgs() {
 
   return (
     <>
-      <header className="bg-coffee text-foam">
+      <header className="on-dark bg-coffee text-foam">
         <div className={`${W} py-12`}>
           <p className="font-mono text-[10.5px] tracking-[.14em] uppercase text-foam/55 mb-5">
             <Link to="/" className="hover:text-white">Home</Link> /{" "}

@@ -55,15 +55,34 @@ export default function Nav() {
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, []);
-  /* sheet open: lock page scroll, Escape closes */
+  /* Sheet open: lock page scroll, move focus inside, keep Tab inside, and hand
+     focus back to the button that opened it. A sheet that only *looks* modal
+     is not one - a keyboard visitor who Tabs past the last link walks straight
+     into the page behind the overlay and starts activating things they cannot
+     see. The panel is labelled and now traps, so aria-modal is the truth. */
+  const sheetRef = useRef<HTMLElement | null>(null);
+  const openerRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     if (!menu) return;
     document.body.style.overflow = "hidden";
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
-    document.addEventListener("keydown", esc);
+    const inside = () => Array.from(
+      sheetRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []
+    ).filter((el) => el.offsetParent !== null);
+    inside()[0]?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMenu(false); openerRef.current?.focus(); return; }
+      if (e.key !== "Tab") return;
+      const els = inside();
+      if (!els.length) return;
+      const first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", key);
     return () => {
       document.body.style.overflow = "";
-      document.removeEventListener("keydown", esc);
+      document.removeEventListener("keydown", key);
     };
   }, [menu]);
 
@@ -116,7 +135,7 @@ export default function Nav() {
                 <SignInButton className="max-[700px]:!px-3.5 max-[700px]:!py-2 max-[700px]:!text-[12.5px]" />
               )}
               {/* hamburger: phone + tablet only, always the rightmost control */}
-              <button onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}
+              <button ref={openerRef} onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}
                 aria-label={menu ? "Close menu" : "Open menu"} aria-expanded={menu}
                 className="lg:hidden relative w-[38px] h-[38px] rounded-full grid place-items-center border border-line bg-card/60 text-ink transition-colors duration-200 hover:bg-peach shrink-0 cursor-pointer">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -144,7 +163,7 @@ export default function Nav() {
             <div onClick={() => setMenu(false)} aria-hidden
               className="lg:hidden fixed inset-0 z-[80] bg-ink/45 backdrop-blur-[3px]"
               style={{ animation: "fadeIn .25s ease both" }} />
-            <aside role="dialog" aria-label="Site menu" className="lg:hidden fixed top-0 right-0 bottom-0 z-[85] w-[min(86vw,340px)]
+            <aside ref={sheetRef} role="dialog" aria-modal="true" aria-label="Site menu" className="lg:hidden fixed top-0 right-0 bottom-0 z-[85] w-[min(86vw,340px)]
             bg-paper border-l border-line rounded-l-[28px] shadow-lift flex flex-col
             max-[1023px]:rounded-none max-[1023px]:border-l-0"
               style={{ animation: "sheetIn .34s cubic-bezier(.32,.9,.35,1) both" }}>
@@ -281,7 +300,7 @@ export function ThemeToggle() {
   return (
     <button role="switch" aria-checked={dark} aria-label="Toggle dark theme" onClick={toggleTheme}
       title={dark ? "Switch to light theme" : "Switch to dark theme"}
-      className="group relative w-[68px] h-[34px] rounded-full cursor-pointer shrink-0 border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="group relative w-[70px] h-[36px] rounded-full cursor-pointer shrink-0 border transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       style={{
         borderColor: dark ? "#2a2d31" : "#d8dde0",
         background: dark ? "#1d2023" : "#e9ebee",
@@ -289,15 +308,15 @@ export function ThemeToggle() {
       }}>
       {/* idle icon resting on the track (opposite side from the knob) */}
       <svg aria-hidden width="17" height="17" viewBox="0 0 24 24"
-        className="absolute top-[8.5px] transition-opacity duration-300" style={{ right: "9px", opacity: dark ? 0 : 1 }}>
+        className="absolute top-[9.5px] transition-opacity duration-300" style={{ right: "9px", opacity: dark ? 0 : 1 }}>
         {MOON("#8b9298")}
       </svg>
       <svg aria-hidden width="17" height="17" viewBox="0 0 24 24"
-        className="absolute top-[8.5px] transition-opacity duration-300" style={{ left: "9px", opacity: dark ? 1 : 0 }}>
+        className="absolute top-[9.5px] transition-opacity duration-300" style={{ left: "9px", opacity: dark ? 1 : 0 }}>
         {SUN("#fbbf24")}
       </svg>
       {/* knob: a clean white circle carrying the active glyph */}
-      <span aria-hidden className="absolute top-[3px] left-[3px] w-[26px] h-[26px] rounded-full bg-white grid place-items-center transition-transform duration-400 ease-[cubic-bezier(.55,1.6,.45,1)] group-hover:scale-[1.06]"
+      <span aria-hidden className="absolute top-[5px] left-[5px] w-[26px] h-[26px] rounded-full bg-white grid place-items-center transition-transform duration-400 ease-[cubic-bezier(.55,1.6,.45,1)] group-hover:scale-[1.06]"
         style={{ boxShadow: "0 2px 6px rgba(58, 40, 22,.22), 0 0 0 1px rgba(58, 40, 22,.04)", transform: dark ? "translateX(34px)" : "none" }}>
         <svg width="19" height="19" viewBox="0 0 24 24" style={{ opacity: dark ? 0 : 1, position: "absolute", transition: "opacity .3s" }}>
           <circle cx="12" cy="12" r="4.8" fill="#fbbf24" />

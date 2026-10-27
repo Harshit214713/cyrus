@@ -74,7 +74,7 @@ function Overview({ d }: { d: Dash }) {
       </div>
 
       {/* the opening band: your numbers, on the graphite island */}
-      <section aria-label="Your board" className="reveal bg-coffee text-foam border border-bean rounded-[18px] px-5 py-4.5 shadow-lift min-[700px]:px-6 min-[700px]:py-5" style={rise(1)}>
+      <section aria-label="Your board" className="on-dark reveal bg-coffee text-foam border border-bean rounded-[18px] px-5 py-4.5 shadow-lift min-[700px]:px-6 min-[700px]:py-5" style={rise(1)}>
         <div className="flex items-center gap-3 mb-4">
           <span className="font-mono text-[9.5px] font-bold tracking-[.16em] uppercase text-ember shrink-0">Your board</span>
           <span className="h-px grow bg-bean" aria-hidden />

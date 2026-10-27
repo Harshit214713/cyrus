@@ -348,6 +348,11 @@ export default function IssueFinder() {
             </div>
           ) : rows.length > 0 ? (
             <>
+              {/* the list is a section of its own: without this heading the
+                  page jumped straight from its h1 into the h3 of the first
+                  card, and a reader tabbing by headings had no way to say
+                  "go to the results". */}
+              <h2 className="sr-only">Matching issues</h2>
               <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
                 {rows.map((i) => <IssueCard key={i.url} i={i} onTrack={track} tracked={Boolean(ledger[i.url])} />)}
               </div>

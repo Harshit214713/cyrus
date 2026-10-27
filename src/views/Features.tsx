@@ -126,7 +126,7 @@ function Stand() {
           {STAND.map(([d, tone, b, p]) => (
             <div key={b} className="flex gap-4 items-start">
               <span className={`w-[46px] h-[46px] rounded-full border grid place-items-center shrink-0 bg-card ${""}`} style={{ borderColor: "var(--color-line)" }}>
-                <span className={tone === "rust" ? "text-rust" : tone === "plum" ? "text-plum" : tone === "honey" ? "text-[#a97b1f]" : tone === "denim" ? "text-denim" : "text-leaf"}><Ico d={D[d]} size={19} /></span>
+                <span className={tone === "rust" ? "text-rust" : tone === "plum" ? "text-plum" : tone === "honey" ? "text-honey" : tone === "denim" ? "text-denim" : "text-leaf"}><Ico d={D[d]} size={19} /></span>
               </span>
               <span className="min-w-0">
                 <b className="block font-display font-bold text-[16.5px] text-ink mb-1">{b}</b>

@@ -8,7 +8,7 @@ import { publishesAreas, useProgramOrgs } from "../lib/contriboOrgs";
 import { PROGRAM_META, PROGRAM_REPOS } from "../data/programRepos";
 import type { ProgramName } from "../data/programRepos";
 import { PROGRAM_DETAILS, programLink } from "../data/programDetails";
-import { byStars, fmt, avatarOf } from "../lib/util";
+import { byStars, fmt, avatarOf, inkOn } from "../lib/util";
 import type { Program } from "../lib/types";
 import { btn, Chip, OrgImg, SectionHead, Tag, Word } from "../components/ui";
 import NotFound from "./NotFound";
@@ -28,7 +28,11 @@ function MonthBar({ p }: { p: Program }) {
           <div key={i} title={`${ph.label} - ${mon(ph.s)} to ${mon(ph.e)}`}
             className={`absolute top-0 bottom-0 grid place-items-center transition-opacity ${ph.active ? "opacity-100" : "opacity-55"}`}
             style={{ left: `${(ph.s / 12) * 100}%`, width: `${((ph.e - ph.s) / 12) * 100}%`, background: ph.c }}>
-            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[.08em] text-white px-1 truncate max-w-full">{ph.label}</span>
+            {/* the band colour comes from the program record, so the ink has to
+                be decided against it: white on the amber season marker was
+                3.8:1, and near-black is what that fill can actually carry. */}
+            <span className="font-mono text-[9.5px] font-bold uppercase tracking-[.08em] px-1 truncate max-w-full"
+              style={{ color: inkOn(ph.c) }}>{ph.label}</span>
           </div>
         ))}
         <div className="absolute top-0 bottom-0 w-[2px] bg-coffee" style={{ left: `${(now / 12) * 100}%` }} aria-hidden />
@@ -153,7 +157,7 @@ export default function ProgramDetail() {
   return (
     <>
       {/* ── cover banner ── */}
-      <header className="relative overflow-hidden bg-coffee">
+      <header className="on-dark relative overflow-hidden bg-coffee">
         {p.img && <img src={p.img} alt="" className="absolute inset-0 w-full h-full object-cover opacity-75" />}
         {/* the cover has to stay readable under white text, but it was sitting at
             30% under a 95% black wash - i.e. invisible. Reveal the photo on the

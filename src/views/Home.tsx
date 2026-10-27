@@ -459,8 +459,8 @@ function Skills () {
               className="bg-card border border-line rounded-[16px] p-[22px] flex flex-col gap-3 shadow-soft hover:-translate-y-[4px] hover:shadow-lift hover:border-accent transition-all">
               <div className="flex items-center gap-3">
                 <OrgImg src={avatarOf(owner, 96)} name={owner} className="w-10 h-10 rounded-[12px] object-cover bg-sand" />
-                <span className="min-w-0"><h4 className="panel-h text-[15.5px] leading-[1.25] truncate">{name}</h4>
-                  <span className="font-mono text-[10px] text-dim tracking-[.05em]">{owner}</span></span>
+                <div className="min-w-0"><h3 className="panel-h text-[15.5px] leading-[1.25] truncate">{name}</h3>
+                  <span className="font-mono text-[10px] text-dim tracking-[.05em]">{owner}</span></div>
               </div>
               <p className="text-cocoa text-[13px] leading-[1.6] flex-1 line-clamp-3">{r.desc}</p>
               <div className="flex items-center justify-between gap-2.5">
@@ -586,7 +586,7 @@ function Voices() {
     </figure>
   );
   return (
-    <section id="stories" className="mt-[92px] bg-coffee border-y border-bean text-foam">
+    <section id="stories" className="on-dark mt-[92px] bg-coffee border-y border-bean text-foam">
       <div className="max-w-[1240px] mx-auto px-6 pt-14 pb-7 flex items-end justify-between gap-6 flex-wrap">
         <div>
           <SectionTag>Early feedback</SectionTag>
@@ -663,7 +663,7 @@ function Faq() {
 function Cta() {
   const { setAuthOpen } = useStore();
   return (
-    <section className="cta-close mt-[110px] relative overflow-hidden bg-coffee text-foam">
+    <section className="on-dark cta-close mt-[110px] relative overflow-hidden bg-coffee text-foam">
       <span aria-hidden className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,var(--gl)_1px,transparent_1px),linear-gradient(to_bottom,var(--gl)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(900px_520px_at_50%_42%,#000_40%,transparent)]" />
       <span aria-hidden className="absolute inset-0 pointer-events-none bg-[radial-gradient(720px_340px_at_50%_-12%,rgba(255,255,255,0.05),transparent_70%)]" />
       <div className="relative max-w-[860px] mx-auto px-6 pt-[104px] pb-[112px] text-center">

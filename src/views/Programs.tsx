@@ -275,6 +275,7 @@ export default function Programs() {
       )}
 
       {/* the cards */}
+      <h2 className="sr-only">Programs</h2>
       <div className="grid grid-cols-3 gap-5 mt-7 max-[1100px]:grid-cols-2 max-[680px]:grid-cols-1">
         {list.map((p) => <ProgCard key={p.id} p={p} s={cs.byId[p.id]} arc={arc.summaries[p.id]} />)}
       </div>

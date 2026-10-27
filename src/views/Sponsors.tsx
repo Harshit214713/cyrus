@@ -161,7 +161,7 @@ export default function Sponsors() {
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="relative flex-1 max-w-[420px]">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-dim" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-            <input value={q} onChange={(e) => { setQ(e.target.value); write({ q: e.target.value }); }}
+            <input aria-label="Search sponsored projects" value={q} onChange={(e) => { setQ(e.target.value); write({ q: e.target.value }); }}
               placeholder="project, language, description…"
               className="w-full bg-card border border-line rounded-full pl-11 pr-4 py-3 text-[14px] text-ink placeholder:text-dim outline-none focus:border-accent/60 transition-colors" />
           </div>

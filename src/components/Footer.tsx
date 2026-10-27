@@ -30,7 +30,7 @@ const XIcon = () => (
 
 export default function Footer() {
   return (
-    <footer className="mt-[110px] bg-coffee text-steam">
+    <footer className="on-dark mt-[110px] bg-coffee text-steam">
       <div className="footer-arc" aria-hidden="true" />
       <div className="max-w-[1240px] mx-auto px-6">
         <div className="grid grid-cols-[1.6fr_repeat(4,1fr)] max-[1020px]:grid-cols-2 gap-10 pt-16 pb-11">
@@ -57,7 +57,11 @@ export default function Footer() {
           </div>
           {COLS.map(([title, links]) => (
             <div key={title}>
-              <h4 className="text-[11px] uppercase tracking-[.12em] text-dimdk mb-4 font-mono font-medium">{title}</h4>
+              {/* an h2, not an h4: these four labels are the outline of the
+                  footer, and a heading that jumps two levels below the last
+                  one on the page is a ladder a screen-reader user cannot
+                  climb. The class, not the tag, is what makes them small. */}
+              <h2 className="text-[11px] uppercase tracking-[.12em] text-dimdk mb-4 font-mono font-medium">{title}</h2>
               <ul className="grid gap-2.5 list-none">
                 {links.map(([l, to]) => <li key={l}><Link className="text-[13.5px] hover:text-white" to={to}>{l}</Link></li>)}
               </ul>

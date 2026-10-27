@@ -23,10 +23,36 @@ export function hash(str: string): number {
   return Math.abs(h);
 }
 
-/** warm-tinted gradient tile derived from any string */
+/** warm-tinted gradient tile derived from any string.
+    Held dark on purpose: the tile always carries white initials, and the old
+    55%-lightness ramp put that text at 2.5:1 on the lighter hues - unreadable
+    on the leaderboard and every contributor row. At these lightnesses the
+    worst case (a yellow hue, where human eyes see the most luminance) still
+    measures 7:1 against white. */
 export function tileBG(str: string): string {
   const h = hash(str) % 360;
-  return `linear-gradient(135deg, hsl(${h} 45% 55%), hsl(${(h + 40) % 360} 50% 40%))`;
+  return `linear-gradient(135deg, hsl(${h} 32% 26%), hsl(${(h + 40) % 360} 40% 15%))`;
+}
+
+/** WCAG relative luminance of a #rrggbb colour. */
+export function luminance(hex: string): number {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex.trim());
+  if (!m) return 1;
+  const ch = (h: string) => {
+    const v = parseInt(h, 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch(m[1]) + 0.7152 * ch(m[2]) + 0.0722 * ch(m[3]);
+}
+
+/** Ink that is readable on a given fill - used where a colour comes from the
+    data (a program's phase band) rather than from the token ramp, so the
+    template cannot promise white. */
+export function inkOn(fill: string): string {
+  const l = luminance(fill);
+  const white = 1.05 / (l + 0.05);
+  const dark = (l + 0.05) / 0.0586;            /* #0d0d0d on the fill */
+  return dark > white ? "#0d0d0d" : "#ffffff";
 }
 
 export function initials(full: string): string {
