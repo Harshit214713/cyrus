@@ -24,8 +24,6 @@ import NotFound from "./NotFound";
 
 const W = "max-w-[1240px] mx-auto px-6";
 const PAGE = 36;
-/* how many technology chips sit on the bar before "All stacks" is needed */
-const SHOWN_TECHS = 20;
 
 type Sort = "projects" | "stars" | "name";
 const SORTS: [Sort, string][] = [["projects", "Most projects"], ["stars", "Most stars"], ["name", "A to Z"]];
@@ -39,7 +37,8 @@ function Select({ label, value, onChange, options }: {
   return (
     <label className="flex items-center gap-2 min-w-0">
       <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim shrink-0">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} className={`${field} min-w-0 max-w-[210px] truncate`}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}
+        className={`${field} select-warm min-w-0 max-w-[210px] truncate pr-8`}>
         {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
       </select>
     </label>
@@ -143,7 +142,6 @@ function OrgCard({ o, pid, areas }: { o: ProgramOrg; pid: string; areas: boolean
               {o.login ? "On GitHub" : "Official page"}
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M7 17 17 7M9 7h8v8" /></svg>
             </a>}
-        <span className="font-mono text-[9px] uppercase tracking-[.1em] text-dim">{o.from.join(" + ")}</span>
       </div>
     </article>
   );
@@ -164,21 +162,10 @@ export default function ProgramOrgs() {
     return y ? [y] : [];
   });
   const [shown, setShown] = useState(PAGE);
-  const [techOpen, setTechOpen] = useState(false);
-  const [techQ, setTechQ] = useState("");
   const withLogo = useMemo(() => r.rows.filter((o) => o.branded).length, [r.rows]);
   const overlaps = useOverlaps(id ?? "");
 
   useEffect(() => { setShown(PAGE); }, [q, tech, sector, years, sort]);
-
-  /* the stacks the bar shows: the twenty most common in this program's record,
-     or the whole list once "All stacks" is opened, or whatever the little
-     filter box matches */
-  const techRail = useMemo(() => {
-    const needle = techQ.trim().toLowerCase();
-    if (needle) return r.techs.filter(([t]) => t.toLowerCase().includes(needle)).slice(0, 60);
-    return r.techs.slice(0, techOpen ? r.techs.length : SHOWN_TECHS);
-  }, [r.techs, techOpen, techQ]);
 
   const hits = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -201,7 +188,7 @@ export default function ProgramOrgs() {
   /* Season of KDE publishes project areas, not a roster of host organizations
      (see AREA_ONLY in contriboOrgs.ts). The page says so wherever it counts. */
   const areas = r.kind === "areas";
-  const unit = areas ? "project area" : "organization";
+
   const units = areas ? "project areas" : "organizations";
 
   return (
@@ -233,11 +220,10 @@ export default function ProgramOrgs() {
           </div>
           <p className="text-foam/60 mt-5 max-w-[760px] text-[13.5px] leading-[1.65]">
             {areas
-              ? <>Season of KDE publishes an ideas list grouped by the area a project falls under, and no list of host
-                  {" "}organizations - so this page shows those {units}, counted from our archive of that list, rather than
-                  {" "}inventing organizations that the program never named. Filter by year and technology; counts come from the archive.</>
-              : <>Filter by year, technology and field. Logos, blurbs and categories come from each program's published
-                  {" "}{unit} record; project counts and years from our archive of it; stars and repositories from GitHub.</>}
+              ? <>Season of KDE groups its projects by the area each one falls under rather than by host organization,
+                  {" "}so this page lists those {units} the way the program lists them.</>
+              : <>Filter by year, technology and field to find the organizations taking part and what each of them
+                  {" "}has had mentored.</>}
           </p>
         </div>
       </header>
@@ -267,40 +253,12 @@ export default function ProgramOrgs() {
             )}
           </div>
 
-          {/* ── the stack rail: every technology this program's records name,
-              as one chip each with its own count. A dropdown hid all but the
-              first hundred; here the common ones sit on the bar and the long
-              tail opens below, with a filter box for the programs that list
-              several hundred technologies. ── */}
+          {/* ── the stack filter: one dropdown, like the sector beside it.
+              A program's record can name several hundred technologies, and a
+              chip rail buried most of them under "All stacks". ── */}
           {r.techs.length > 0 && (
-            <div className="mt-3.5 pt-3.5 border-t border-liness">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-[9.5px] uppercase tracking-[.11em] text-dim mr-1">Stacks</span>
-                {techRail.map(([t, n]) => (
-                  <button key={t} type="button" onClick={() => setTech(tech === t ? "" : t)} aria-pressed={tech === t}
-                    className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[5px] font-mono text-[10.5px] transition-all ${
-                      tech === t ? "bg-denim text-white border-denim" : "bg-cream text-cocoa border-line hover:border-denim/60 hover:text-ink"}`}>
-                    {t}
-                    <span className={`text-[9px] tabular-nums ${tech === t ? "text-white/75" : "text-dim"}`}>{fmt(n)}</span>
-                  </button>
-                ))}
-                {r.techs.length > SHOWN_TECHS && !techQ.trim() && (
-                  <button type="button" onClick={() => setTechOpen((v) => !v)}
-                    className="font-mono text-[10px] uppercase tracking-[.1em] text-accent hover:text-rust transition-colors">
-                    {techOpen ? "Fewer stacks" : `All ${fmt(r.techs.length)} stacks`}
-                  </button>
-                )}
-                <input value={techQ} onChange={(e) => setTechQ(e.target.value)}
-                  placeholder="Find a stack" aria-label="Find a technology"
-                  className="ml-auto w-[150px] bg-cream border border-line rounded-full px-3 py-[6px] font-mono text-[10.5px] outline-none transition-all focus:border-accent" />
-              </div>
-              {tech && !techRail.some(([t]) => t === tech) && (
-                <p className="font-mono text-[10px] text-dim mt-2.5">
-                  Filtering by <b className="text-ink">{tech}</b> ·{" "}
-                  <button type="button" className="text-accent hover:underline" onClick={() => setTech("")}>remove</button>
-                </p>
-              )}
-            </div>
+            <Select label="Stack" value={tech} onChange={setTech}
+              options={[["", `All stacks (${fmt(r.techs.length)})`], ...r.techs.map(([t, n]) => [t, `${t} (${fmt(n)})`] as [string, string])]} />
           )}
 
           {r.years.length > 1 && (
@@ -356,9 +314,7 @@ export default function ProgramOrgs() {
         {r.ready && r.rows.length > 0 && (
           <p className="text-dim text-[11.5px] leading-[1.65] mt-6 max-w-[860px]">
             {fmt(withLogo)} of these {units} show their own logo - the image from their GitHub account
-            where they have one, otherwise the mark their program publishes. "archive" under a card means the
-            row is only in our copy of that program's record, "contribo" only in the organization list on its
-            platform, and "archive + contribo" in both.
+            where they have one, otherwise the mark their program publishes.
           </p>
         )}
 

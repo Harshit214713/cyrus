@@ -144,7 +144,7 @@ export const BTN_VARIANTS: Record<string, string> = {
      paper, so it stays legible whichever mode the visitor is in. */
   primary: "bg-accent text-accentfg border border-accent shadow-[0_10px_26px_-12px_rgba(34,197,94,.5)] hover:bg-accentd hover:border-accentd",
   /* the neutral pill: near-white on graphite, graphite on paper */
-  dark: "bg-ink text-paper border border-ink hover:bg-accent hover:text-accentfg hover:border-accent",
+  dark: "bg-ink text-paper border border-ink hover:-translate-y-px hover:shadow-lift",
   outline: "bg-card border border-line text-ink shadow-soft hover:border-accent hover:-translate-y-px",
   ghost: "text-cocoa hover:text-ink hover:bg-card border border-transparent hover:border-line",
 };

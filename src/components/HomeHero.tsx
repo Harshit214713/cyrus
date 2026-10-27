@@ -150,7 +150,7 @@ function OrgsPanel() {
   return (
     <>
       <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Organizations</h3>
-      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.orgs)} profiled from their public GitHub record, {fmt(STATS.orgRoster)} named by a program archive.</p>
+      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{fmt(STATS.orgs)} profiled from their public GitHub record, every one named by a program.</p>
       <div className="grid grid-cols-2 gap-2 mt-3">
         {TOP_ORGS.map((o, k) => (
           <Row key={o.login} className={k > 1 ? "hidden md:block" : ""}>
@@ -208,7 +208,7 @@ function ProgramsPanel() {
   return (
     <>
       <h3 className="font-display font-extrabold text-[14px] md:text-[15px] tracking-[-.015em]">Programs</h3>
-      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{PROGRAMS.length} funded or mentored cycles on one calendar.</p>
+      <p className="text-[10.5px] md:text-[11px] text-dim mt-1 md:mt-0.5">{PROGRAMS.length} open-source programs on one calendar.</p>
       <div className="grid gap-1.5 mt-3">
         {TOP_PROGS.map((p, k) => (
           <div key={p.id} className={`flex items-center gap-2.5 rounded-[9px] border border-line bg-card px-3 py-2 ${k > 2 ? "hidden md:flex" : ""}`}>
@@ -414,7 +414,7 @@ export default function HomeHero() {
         </h1>
 
         <p className="reveal mx-auto mt-4 max-w-[560px] text-cocoa text-[15.5px] leading-[1.6] max-[700px]:mt-3 max-[700px]:text-[14px] max-[700px]:leading-[1.55]" style={{ animationDelay: ".34s" }}>
-          {fmt(STATS.issues)} real open issues, {fmt(STATS.archive)} archived program projects, {PROGRAMS.length} funded programs, one contribution board.
+          {fmt(STATS.issues)} real open issues, {fmt(STATS.archive)} archived program projects, {PROGRAMS.length} open-source programs, one contribution board.
         </p>
 
         {/* ossium keeps its two actions on one row on phones, so the pair

@@ -195,7 +195,9 @@ function ArchiveBand({ grid, loading, roster, idx, stats, arcs }: {
           : <>
             Each year column counts the rows in the browsable listing for that
             season. Every figure comes from the archive, API or
-            published list the program itself puts out.
+            published list the program itself puts out. Where a program's record is
+            built from GitHub topics rather than an organizer list, the Orgs column
+            counts the repositories in that season, not host organizations.
             {idx.generated ? <> Record built {idx.generated}.</> : null}
           </>}
       </p>

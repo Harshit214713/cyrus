@@ -48,7 +48,7 @@ export function homeCard(): OgCard {
       { k: "Projects", v: `${fmt(STATS.archive)} program projects, ${STATS.archivePrograms} archives` },
       { k: "Organizations", v: `${ORGS.length} profiles, each named by a program` },
     ],
-    foot: `Refreshed nightly from GitHub - ${SNAPSHOT}`,
+    foot: `Index snapshot ${SNAPSHOT}`,
     alt: "cyrus.ai - the open-source contribution index: issues, programs, projects and organizations.",
   };
 }

@@ -25,7 +25,6 @@ interface Proj {
   org: string;
   orgUrl: string;
   program: string;            // the program's own display label
-  unit?: string;              // what one row is, in that program's words
   year: number;
   /** project scope, only where the archive states it - GSoC publishes this */
   size?: "small" | "medium" | "large";
@@ -70,16 +69,6 @@ const DIFF_CLS: Record<Size, string> = {
   medium: "text-honey border-honey/45 bg-honey/12",
   large: "text-brick border-brick/40 bg-brick/10",
 };
-/* a shard chip says what kind of record the row is, in the words the build
-   step recorded for that program - never "accepted project" unless the
-   program itself published an archive */
-const EVIDENCE_UNIT: Record<string, string> = {
-  archive: "archived project",
-  api: "listed record",
-  listing: "published listing",
-  scrape: "published grid",
-};
-
 const inBand = ([a, b]: [number, number], seed: number, dp = 0) => {
   const v = a + (seed % 1000) / 1000 * (b - a);
   return dp ? v.toFixed(dp) : String(Math.round(v));
@@ -123,7 +112,7 @@ function ProjCard({ p }: { p: Proj }) {
         {sized ? <>
           <Chip tone="green">$ {stipend}k–${(+stipend + 2.6).toFixed(1)}k</Chip>
           <span className="font-mono text-[9.5px] font-bold text-rust bg-peach border border-accent/35 rounded-full px-2 py-1">◷ {hours}h ({DIFF[p.size!]})</span>
-        </> : <Chip tone="cat">{p.program}{p.unit && p.unit !== "projects" ? ` · ${p.unit}` : p.size ? " flagship" : ""}</Chip>}
+        </> : <Chip tone="cat">{p.program}{p.size ? " flagship" : ""}</Chip>}
         {p.stars > 0 && <Chip tone="stars">★ {fmt(p.stars)}</Chip>}
       </div>
       <p className="text-cocoa text-[12.5px] leading-[1.55] mt-2.5 line-clamp-3">{p.body}</p>
@@ -252,9 +241,6 @@ export default function Projects() {
     const shards: Proj[] = arc.rows.map((r) => ({
       key: r.key, title: r.title, org: r.org, orgUrl: r.orgUrl,
       program: r.program,
-      /* the program's own word for a row when it publishes one, otherwise the
-         evidence type the build step recorded */
-      unit: arc.summaries[r.id]?.unit || EVIDENCE_UNIT[arc.summaries[r.id]?.evidence ?? ""],
       year: r.year, season: r.season,
       tags: r.tags, body: r.body, mentor: r.mentor, url: r.url, stars: r.stars,
     }));

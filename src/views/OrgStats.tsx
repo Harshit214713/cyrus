@@ -404,22 +404,6 @@ export default function OrgStats() {
             )}
           </section>
 
-          {/* ── how this is built ────────────────────────────── */}
-          <section className="mt-10 bg-cream border border-line rounded-[20px] p-[22px]">
-            <h2 className="panel-h mb-2">How this page is built</h2>
-            <p className="text-cocoa text-[12.5px] leading-[1.7] max-w-[900px]">
-              Each program's Contribo organization list is merged over our own copy of that program's archive, row by row,
-              then every result is folded with the others on the organization's name and, where the record carries one,
-              its GitHub account. Names are compared after their legal form is stripped, so "OWASP" and "OWASP
-              Foundation", or "KDE Community" and "KDE (unspecified project)", arrive as one row; two rows that carry two
-              different confirmed accounts are never folded. Stars, repositories and open issues are GitHub's own numbers
-              for the accounts we track; everything else is what the program published. Programs whose records list
-              repositories rather than host organizations - 24 Pull Requests, Hacktoberfest, GSSoC, NSOC, FOSSEE and the
-              Vercel OSS Program - are left out of the fold, because a repository is not an organization; each still has
-              its own {" "}<Link to="/programs" className="text-accent underline underline-offset-2">organization page</Link>.
-              Generated {file.generated || "recently"} by <code className="font-mono text-[11.5px]">scripts/org-stats.mjs</code>.
-            </p>
-          </section>
         </>)}
       </div>
     </>

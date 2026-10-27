@@ -13,15 +13,15 @@ import { useStore } from "../lib/store";
    first (the programs that fund them), then who runs them, then the work.
    "Home" is not a link - the wordmark at the left of the strip already is one,
    and spending a slot on it pushed the real destinations into an overflow. */
-const LINKS = [
+const LINKS: { to: string; label: string; short?: string }[] = [
   { to: "/programs", label: "Programs" },
-  { to: "/organizations", label: "Organizations" },
+  { to: "/organizations", label: "Organizations", short: "Orgs" },
   { to: "/projects", label: "Projects" },
   { to: "/issues", label: "Issues" },
   { to: "/skills", label: "Skills" },
   { to: "/sponsors", label: "Sponsors" },
   { to: "/leaderboard", label: "Leaderboard" },
-  { to: "/about", label: "About us" },
+  { to: "/about", label: "About" },
 ];
 
 /* Platform menu entries: slug, label, blurb, icon path, tone class from the plat kit */
@@ -31,8 +31,12 @@ const PLAT: [string, string, string, string, string][] = [
   ["how", "How it works", "Three steps from empty tabs to merged PR.", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3.5 2", "honey"],
 ];
 
-/* pill size bases - desktop is tightened so all 9 items fit from 1024px up */
-const PILL = "px-3 py-[7px] rounded-full text-[12.5px] font-semibold whitespace-nowrap transition-colors cursor-pointer";
+/* pill size bases. The row is measured, not guessed: at 1024px the pill strip
+   has about 660px to live in once the wordmark, the right-hand controls and
+   the pill's own padding are counted, so the pills carry 10px of horizontal
+   padding at 12px type and sit 2px apart. Anything looser and the last item
+   ("Platform") gets clipped behind the controls. */
+const PILL = "px-2.5 py-[7px] rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors cursor-pointer";
 const pillCls = (on: boolean) => on ? "bg-coffee text-foam" : "text-cocoa hover:bg-card hover:text-ink";
 
 export default function Nav() {
@@ -70,22 +74,26 @@ export default function Nav() {
     <header>
       <nav className="sticky top-0 z-[60] bg-paper px-4 pt-3 max-[700px]:px-2.5">
         <div className="max-w-[1340px] mx-auto bg-paper/92 backdrop-blur-[16px] saturate-[1.35] border border-liness rounded-full shadow-soft">
-          <div className="flex items-center gap-5 h-[62px] pl-4 pr-4 max-[1023px]:h-[54px] max-[700px]:gap-2.5 max-[700px]:pl-2.5 max-[700px]:pr-2.5">
+          <div className="flex items-center gap-4 h-[62px] pl-4 pr-4 max-[1179px]:gap-3 max-[1023px]:h-[54px] max-[700px]:gap-2.5 max-[700px]:pl-2.5 max-[700px]:pr-2.5">
             <Link to="/" className="flex items-center gap-3 shrink-0 max-[700px]:gap-2.5"><Logo size={40} draw live /><Brand /></Link>
-            {/* desktop strip: single tightened row, lg+ only */}
-            <div className="hidden lg:flex items-center gap-1 min-w-0">
+            {/* desktop strip: single tightened row, lg+ only. Below 1280 the
+                one label that will not spare the pixels keeps its short form;
+                from xl the full name comes back. */}
+            <div className="hidden lg:flex items-center gap-0.5 min-w-0">
               {LINKS.map((l) => (
                 <NavLink key={l.to} to={l.to}
                   className={`${PILL} ${pillCls(active(l.to))}`}>
-                  {l.label}
+                  {l.short ? (
+                    <><span className="hidden xl:inline">{l.label}</span><span className="xl:hidden">{l.short}</span></>
+                  ) : l.label}
                 </NavLink>
               ))}
               <PlatformMenu />
             </div>
 
-            <div className="ml-auto flex items-center gap-3.5 max-[700px]:gap-2">
+            <div className="ml-auto flex items-center gap-3.5 max-[1179px]:gap-2.5 max-[700px]:gap-2">
               <ThemeToggle />
-              <span className="w-px h-6 bg-line shrink-0 max-[700px]:hidden" aria-hidden />
+              <span className="w-px h-6 bg-line shrink-0 max-[1179px]:hidden" aria-hidden />
               {user ? (
                 <div className="relative" ref={accountRef}>
                   <button className="!p-0 border-0" onClick={() => setPop((open) => !open)} aria-label="Account" aria-expanded={pop}>
@@ -149,16 +157,16 @@ export default function Nav() {
               </div>
               <div className="flex-1 overflow-y-auto px-3.5 pb-4">
                 <p className="px-2.5 pt-1 pb-2 font-mono text-[10px] font-semibold tracking-[.14em] text-dim">BROWSE</p>
-                <div className="grid gap-1">
+                <div className="grid gap-0.5">
                   {LINKS.map((l) => (
                     <NavLink key={l.to} to={l.to} end={l.to === "/"}
-                      className={`px-3.5 py-3 rounded-[14px] text-[14.5px] font-semibold transition-colors ${pillCls(active(l.to))}`}>
+                      className={`px-3.5 py-2.5 rounded-[14px] text-[14.5px] font-semibold transition-colors ${pillCls(active(l.to))}`}>
                       {l.label}
                     </NavLink>
                   ))}
                 </div>
-                <p className="px-2.5 pt-5 pb-2 font-mono text-[10px] font-semibold tracking-[.14em] text-dim">PLATFORM</p>
-                <div className="grid gap-1">
+                <p className="px-2.5 pt-4 pb-2 font-mono text-[10px] font-semibold tracking-[.14em] text-dim">PLATFORM</p>
+                <div className="grid gap-0.5">
                   {PLAT.map(([slug, label, desc, d, tone]) => (
                     <Link key={slug} to={`/platform/${slug}`}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-[14px] hover:bg-peach transition-colors">

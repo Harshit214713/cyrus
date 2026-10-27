@@ -15,7 +15,7 @@ const body = `# cyrus.ai
 ## Pages
 
 ${line("/skills", `the ${fmt(STATS.catalog)}-repository catalog, ranked by stars, each entry linked to its live GitHub record`)}
-${line("/projects", `${fmt(STATS.archive)} program projects read out of ${STATS.archivePrograms} programs' own archives, APIs and published listings (GSoC, LFX, Outreachy, Summer of Bitcoin, GSSoC, Season of KDE, MLH, NSOC, Hacktoberfest, 24 Pull Requests, FOSSEE, Vercel OSS), filterable by year, org and tech`)}
+${line("/projects", `${fmt(STATS.archive)} program projects across ${STATS.archivePrograms} programs (GSoC, LFX, Outreachy, Summer of Bitcoin, GSSoC, Season of KDE, MLH, NSOC, Hacktoberfest, 24 Pull Requests, FOSSEE, Vercel OSS), filterable by year, org and tech`)}
 ${line("/issues", `search ${fmt(STATS.issues)} open issues by keyword, language, organization, label, beginner-friendly and unassigned`)}
 ${line("/organizations", `${fmt(STATS.orgs)} real GitHub organizations with stats, program history and how to contribute to each`)}
 - ${canonical("/programs/gsoc")} and one page like it per tracked program: ${PROGRAMS.map((p) => p.id).join(", ")}

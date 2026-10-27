@@ -116,7 +116,7 @@ export const ARCHIVE_IDS = ["gsoc", "lfx", "outreachy", "sob"] as const;
    them "accepted projects" or "repositories" would be a fiction. */
 export const ROSTER_UNIT: Record<string, string> = {
   gsoc: "accepted projects", lfx: "mentored projects", outreachy: "internships",
-  sob: "funded projects", gssoc: "board projects", "24pr": "listed repositories",
+  sob: "funded projects", gssoc: "projects", "24pr": "listed repositories",
   mlh: "forked repositories", kde: "proposed ideas", oct: "Hacktoberfest repositories",
 };
 
