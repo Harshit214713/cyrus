@@ -2,7 +2,7 @@
 /* ══ ui.tsx — small shared primitives ═══════════════════════ */
 import { useState } from "react";
 import type { ReactNode, ImgHTMLAttributes } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
 import { FACETS } from "../lib/mark";
 import type { Level } from "../lib/types";
@@ -43,12 +43,17 @@ export function Logo({
   live?: boolean;
   tile?: boolean;
 }) {
-  const reduce = useReducedMotion();
-  const anim = draw && !reduce;
+  /* The mark never asks here whether the visitor wants motion: that is
+     MotionConfig's `reducedMotion="user"` in Shell, and the CSS media query
+     below for the spin and the hover turn. Asking here used to make the
+     server's HTML and the client's first render disagree about the logo's
+     own transform - a hydration mismatch on every page, for every
+     reduced-motion visitor. */
+  const anim = draw;
   const easeSilk = [0.22, 1, 0.36, 1] as const;
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true"
-      className={live && !reduce ? "mark-live" : undefined}>
+      className={live ? "mark-live" : undefined}>
       {tile && <rect width="100" height="100" rx="24" fill="#0f1214" />}
       <motion.g
         initial={anim ? { rotate: -120, scale: 0.9 } : false}

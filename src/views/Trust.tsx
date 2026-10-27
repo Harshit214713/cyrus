@@ -57,7 +57,7 @@ export default function Trust() {
       <div className="relative">
         {/* ── hero + status bar (image 8) ── */}
         <section className={`${W} pt-[64px]`}>
-          <CenterHead pill="Live verification network"
+          <CenterHead as="h1" pill="Live verification network"
             h2={<>Data, sources <Word>&amp; trust engine.</Word></>}
             sub="cyrus is a static index with a live conscience: every number below was pulled from a public API, regenerated on a schedule, and can be re-verified by you in one click. Here is exactly what is running, and on what cadence." />
           <div className="mt-11 bg-card border border-line rounded-[22px] p-6 shadow-soft flex items-center gap-5 flex-wrap max-[700px]:flex-col max-[700px]:items-start">

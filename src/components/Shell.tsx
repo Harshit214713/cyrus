@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion, type Variants } from "framer-motion";
 import { StoreProvider } from "@/lib/store";
 import { useLocation } from "@/lib/router";
 import Nav from "@/components/Nav";
@@ -116,16 +116,22 @@ export default function Shell({ children }: { children: ReactNode }) {
   const app = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
   return (
     <StoreProvider>
-      <ScrollManager />
-      <Splash app={app} />
-      <div className="min-h-screen flex flex-col">
-        <a className="skip-link" href="#main">Skip to content</a>
-        {!app && <Nav />}
-        <main id="main" tabIndex={-1} className="flex-1">{children}</main>
-        {!app && <Footer />}
-      </div>
-      <Palette />
-      <AuthModal />
+      {/* One place decides how the site moves for someone who has asked their
+          system for less of it: framer skips the transform-based entrance
+          animations everywhere below, while opacity fades - the ones that
+          carry meaning rather than motion - still play. */}
+      <MotionConfig reducedMotion="user">
+        <ScrollManager />
+        <Splash app={app} />
+        <div className="min-h-screen flex flex-col">
+          <a className="skip-link" href="#main">Skip to content</a>
+          {!app && <Nav />}
+          <main id="main" tabIndex={-1} className="flex-1">{children}</main>
+          {!app && <Footer />}
+        </div>
+        <Palette />
+        <AuthModal />
+      </MotionConfig>
     </StoreProvider>
   );
 }
