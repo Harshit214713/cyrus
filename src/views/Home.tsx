@@ -505,14 +505,37 @@ function Band() {
 /* ── voices ───────────────────────────────────────────────── */
 /* PLACEHOLDER CONTENT. These are illustrative quotes written for the layout,
    not statements from real users. Replace each entry with a quote someone has
-   actually given us before this section ships to a public audience. */
-const QUOTES: [string, string, string, string][] = [
-  ["Priya N.", "ML engineer, Bengaluru", "The program calendar told me LFX Term 3 was open the week I had capacity. I applied with a documentation fix as my proof of work.", "Placeholder"],
-  ["Marcus D.", "CS undergraduate", "I used to skim a dozen org pages. One view of open issues, review latency and stack is enough to decide.", "Placeholder"],
-  ["Sana K.", "Frontend developer", "Filtering by language and label got me to a real first issue in about ten minutes instead of a weekend.", "Placeholder"],
-  ["Arjun R.", "Backend developer, Pune", "Watching what changed on issues I had saved is the part I did not know I needed.", "Placeholder"],
-  ["Wei L.", "Data scientist", "The repository pages tell me whether a project is alive before I open a pull request into a void.", "Placeholder"],
-  ["Fatima Z.", "Second-year student", "Outreachy felt impossible until the prep window was on the same page as the communities doing it.", "Placeholder"],
+   actually given us before this section ships to a public audience.
+   Each one is *about* a single organization, and that organization's own mark
+   sits on the card so a reader knows which program the words concern. The mark
+   is attribution of subject, never endorsement - the intro and the tag on
+   every card both say so. */
+type Voice = { name: string; role: string; quote: string; org: string; login: string };
+const QUOTES: Voice[] = [
+  {
+    name: "Priya N.", role: "ML engineer, Bengaluru", org: "LFX", login: "linuxfoundation",
+    quote: "The program calendar told me LFX Term 3 was open the week I had capacity. I applied with a documentation fix as my proof of work.",
+  },
+  {
+    name: "Marcus D.", role: "CS undergraduate", org: "GitHub", login: "github",
+    quote: "I used to skim a dozen GitHub organization pages. One view of open issues, review latency and stack is enough to decide.",
+  },
+  {
+    name: "Sana K.", role: "Frontend developer", org: "Google Summer of Code", login: "google",
+    quote: "GSoC felt like a black hole until every participating organization's open issues were on one page. I shortlisted nine in an evening.",
+  },
+  {
+    name: "Arjun R.", role: "Backend developer, Pune", org: "Vercel Open Source", login: "vercel",
+    quote: "Watching what changed on the issues I had saved is the part I did not know I needed. Two of them were Vercel's.",
+  },
+  {
+    name: "Wei L.", role: "Data scientist", org: "Kubernetes", login: "kubernetes",
+    quote: "Before I opened a pull request into a void, I checked how long that Kubernetes working group had gone without reviewing one.",
+  },
+  {
+    name: "Fatima Z.", role: "Second-year student", org: "Outreachy", login: "outreachy",
+    quote: "Outreachy felt impossible until the prep window was on the same page as the communities actually doing it.",
+  },
 ];
 const QuoteMark = () => (
   <svg width="22" height="18" viewBox="0 0 24 20" fill="currentColor" aria-hidden className="text-accent/60">
@@ -538,18 +561,27 @@ function Voices() {
     const w = card ? card.offsetWidth + 16 : 376;
     el.scrollBy({ left: dir * w, behavior: reduceMotion ? "auto" : "smooth" });
   };
-  const card = ([name, role, quote]: typeof QUOTES[number], k: number) => (
-    <figure key={name + k} data-card
-      className="shrink-0 snap-start w-[376px] max-[700px]:w-[292px] bg-card border border-line rounded-[18px] p-[24px] flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:shadow-lift">
-      <QuoteMark />
-      <blockquote className="text-ink text-[14.5px] leading-[1.75] mt-3.5 flex-1">{quote}</blockquote>
-      <figcaption className="mt-6 pt-5 border-t border-dashed border-line flex items-center gap-3">
-        <Portrait name={name} size={44} className="ring-1 ring-line" />
-        <span className="min-w-0">
-          <b className="block font-display text-[14px] truncate">{name}</b>
-          <span className="block text-[11.5px] text-cocoa truncate">{role}</span>
+  const card = (v: Voice, k: number) => (
+    <figure key={v.name + k} data-card
+      className="group/card shrink-0 snap-start w-[376px] max-[700px]:w-[292px] bg-card border border-line rounded-[18px] p-[24px] flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:shadow-lift">
+      {/* the face on the left, the organization it is about on the right */}
+      <div className="flex items-start justify-between gap-3">
+        <Portrait name={v.name} size={46} className="ring-1 ring-line" />
+        <span className="grid h-[40px] w-[40px] shrink-0 place-items-center rounded-[12px] bg-foam ring-1 ring-line transition-shadow duration-300 group-hover/card:ring-accent/45"
+          title={`About ${v.org}`}>
+          <OrgImg src={avatarOf(v.login, 80)} name={v.org} alt={v.org} width={26} height={26} className="h-[26px] w-[26px] object-contain" />
         </span>
-        <span className="ml-auto shrink-0 font-mono text-[8.5px] font-bold uppercase tracking-[.1em] text-dim border border-line rounded-full px-2 py-[4px]">Illustrative</span>
+      </div>
+      <div className="mt-5"><QuoteMark /></div>
+      <blockquote className="text-ink text-[14.5px] leading-[1.75] mt-3 flex-1">{v.quote}</blockquote>
+      <figcaption className="mt-6 pt-4 border-t border-dashed border-line">
+        <div className="flex items-end justify-between gap-3">
+          <span className="sign text-ink">{v.name}</span>
+          <span className="mb-[5px] shrink-0 font-mono text-[8.5px] font-bold uppercase tracking-[.1em] text-dim border border-line rounded-full px-2 py-[4px]">Illustrative</span>
+        </div>
+        <p className="text-cocoa text-[11.5px] mt-3 truncate">
+          {v.role}<span className="text-dim"> · </span>{v.org}
+        </p>
       </figcaption>
     </figure>
   );
@@ -559,7 +591,7 @@ function Voices() {
         <div>
           <SectionTag>Early feedback</SectionTag>
           <h2 className="font-display font-extrabold tracking-[-.022em] text-[clamp(28px,3.6vw,42px)] mt-3 text-foam">What builders <Word>tell us</Word>.</h2>
-          <p className="text-steam text-[13.5px] max-w-[520px] leading-[1.65] mt-3">These cards are layout placeholders until we have quotes we can attribute. The faces are drawn, not photographed, and the tag on each card says so.</p>
+          <p className="text-steam text-[13.5px] max-w-[540px] leading-[1.65] mt-3">These cards are layout placeholders until we have quotes we can attribute. The faces are drawn, not photographed, and the mark beside each one is the organization that quote is about - not an endorsement from it.</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button type="button" onClick={() => nudge(-1)} aria-label="Previous quotes"

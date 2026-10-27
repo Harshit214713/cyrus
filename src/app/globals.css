@@ -69,12 +69,14 @@
   --color-steam: #9a9a9a;
   --color-dimdk: #6b7280;
 
-  /* next/font declares --font-jakarta, --font-inter and --font-jbmono on <html>
-     and ships the files from our own origin; the old family names stay as the
-     fallback so the page still renders in the same faces if a file is missing. */
+  /* next/font declares --font-jakarta, --font-inter, --font-jbmono and
+     --font-signature on <html> and ships the files from our own origin; the
+     old family names stay as the fallback so the page still renders in the
+     same faces if a file is missing. */
   --font-display: var(--font-jakarta), "Plus Jakarta Sans", "Inter", -apple-system, sans-serif;
   --font-sans: var(--font-inter), "Inter", -apple-system, sans-serif;
   --font-mono: var(--font-jbmono), "JetBrains Mono", ui-monospace, monospace;
+  --font-sign: var(--font-signature), "Dancing Script", cursive;
 
   --shadow-soft: 0 4px 18px -8px rgba(0, 0, 0, 0.55);
   --shadow-lift: 0 18px 46px -18px rgba(0, 0, 0, 0.7);
@@ -188,6 +190,18 @@ h1, h2 { text-wrap: balance; }
 h3, h4 { text-wrap: pretty; }
 p { text-wrap: pretty; }
 .font-display { text-rendering: optimizeLegibility; font-variant-numeric: tabular-nums; }
+/* The signature on a testimonial card: the name written by a hand, not set in
+   a face. Tilted a little off the baseline because a pen never sits straight. */
+.sign {
+  display: inline-block;
+  font-family: var(--font-sign);
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: .004em;
+  transform: rotate(-2.4deg);
+  transform-origin: left bottom;
+}
 ::selection { background: rgba(74, 222, 128, 0.26); }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 6px; }
 
