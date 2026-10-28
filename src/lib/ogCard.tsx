@@ -9,8 +9,8 @@ import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { OgCard as OgCardData } from "@/lib/ogContent";
-/* the brand mark - the same three die faces Logo() draws */
-import { FACETS as OG_FACETS, SILHOUETTE as OG_HEX } from "@/lib/mark";
+/* the brand mark - the same four blades Logo() draws */
+import { BLADES as OG_BLADES } from "@/lib/mark";
 
 const PAPER = "#0e0f10";
 const CREAM = "#17191b";
@@ -19,14 +19,9 @@ const INK = "#eceef0";
 const COCOA = "#a2a8ad";
 const DIM = "#71787e";
 const RULE = "#2a2d31";
-const ARC = "#3f454a";
 const ACCENT = "#4ade80";
 const RUST = "#7ee7a4";
 const FOAM = "#eceef0";
-/* the mark's own plate - the same near-black the favicon tile uses. It is NOT
-   PAPER: the card is dark, so a tile that borrows the page colour disappears,
-   and ink-coloured arms on an ink-coloured tile disappear with it. */
-const TILE = "#0f1214";
 
 const FONT_DIR = join(process.cwd(), "public", "assets", "fonts");
 let cached: { regular: ArrayBuffer; display: ArrayBuffer } | null = null;
@@ -73,26 +68,25 @@ function layoutTitle(title: string[]): { lines: string[]; size: number } {
   return { lines: [words.slice(0, cut).join(" "), words.slice(cut).join(" ")], size: name.length <= 30 ? 62 : 52 };
 }
 
-/** The mark from components/ui.tsx, scaled up and cropped by the corner. */
+/** The mark from components/ui.tsx, watermarked into the corner. Sized so the
+ *  aperture still reads as an aperture - a ring, not an abstract sweep - with
+ *  only its outer blade cut by the card's edge. */
 function Stamp() {
   return (
     <div
       style={{
         position: "absolute",
-        right: -96,
-        bottom: -124,
-        width: 520,
-        height: 520,
+        right: -74,
+        bottom: -92,
+        width: 400,
+        height: 400,
         display: "flex",
       }}
     >
-      <svg width={520} height={520} viewBox="0 0 100 100">
-        <g transform="translate(-10 -10) scale(1.2)">
-          <path d={OG_HEX} fill={ARC} />
-          {OG_FACETS.map((d, i) => (
-            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 2 ? 0.55 : 1} />
-          ))}
-        </g>
+      <svg width={400} height={400} viewBox="0 0 100 100">
+        {OG_BLADES.map((d, i) => (
+          <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 0 ? 0.34 : 0.12} />
+        ))}
       </svg>
     </div>
   );
@@ -102,12 +96,9 @@ function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
-        <rect width="100" height="100" rx="24" fill={TILE} />
-        <g transform="translate(6 6) scale(0.88)">
-          {OG_FACETS.map((d, i) => (
-            <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 2 ? 0.55 : 1} />
-          ))}
-        </g>
+        {OG_BLADES.map((d, i) => (
+          <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} />
+        ))}
       </svg>
       <span style={{ fontSize: 33, fontWeight: 800, color: INK, letterSpacing: -0.8 }}>cyrus.ai</span>
     </div>

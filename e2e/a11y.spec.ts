@@ -37,6 +37,14 @@ type Findings = {
 };
 
 async function audit(page: Page, path: string): Promise<Findings> {
+  /* The intro curtain is a one-time overlay. While it is up it is the surface
+     every element on the page is painted against, so a background sampled by
+     walking up the tree reads the curtain's paper rather than the graphite
+     band underneath - twenty-odd false contrast failures on the home page,
+     but only on a first visit. Skip it the way a returning visitor does. */
+  await page.addInitScript(() => {
+    try { sessionStorage.setItem("cyrus-splashed", "1"); } catch { /* private mode */ }
+  });
   await page.goto(path, { waitUntil: "load" });
   await page.waitForTimeout(1400);                    /* let the panels settle - the audit reads the finished page */
   await page.addScriptTag({ content: AUDIT });

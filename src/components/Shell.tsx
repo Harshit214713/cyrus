@@ -23,17 +23,33 @@ function ScrollManager() {
 /* one-time intro curtain: marketing pages only, decided after mount so
    server HTML never carries it.
 
-   The sequence is the brand, not a spinner: the mark draws itself (Logo's own
-   `draw` pass - ring, then the commit dropping onto its end), the wordmark
-   rises letter by letter behind it, the line of what the site is fades in
-   under that, and the whole curtain lifts. Timed to about two seconds so it
-   reads as an arrival and not a wait, and skipped outright for reduced-motion
+   The sequence is the brand, not a spinner. The mark is an aperture, so the
+   intro opens like one: the four blades come in from outside the ring and swing
+   a quarter-turn into place (Logo's own `draw` pass), a bloom swells behind them,
+   three hairline circles start on the mark's rim and widen outward like an iris
+   opening (`.iris` in globals.css), the wordmark rises letter by letter, a
+   hairline rule grows under it, and the line of what the site is fades in last.
+   Everything resolves at about two seconds, and then the curtain lifts - timed
+   to read as an arrival and not a wait. Skipped outright for reduced-motion
    visitors and for every route inside the application shell. */
 const CURSOR = 2050;                        /* curtain comes down at */
 const WORD = "cyrus";
 /* the same two curves the rest of the site moves on: settle, then leave */
 const EASE_SILK = [0.22, 1, 0.36, 1] as const;
 const EASE_LIFT = [0.76, 0, 0.24, 1] as const;
+
+/* The iris: three rings that begin at the mark's own rim. The circles are
+   centred in the same 100x100 box the mark is drawn in, so r=46 is where a
+   blade's outer edge lands; only the stroke widens, never the shape. */
+function Iris({ size }: { size: number }) {
+  return (
+    <svg className="iris pointer-events-none absolute" width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" />
+      <circle cx="50" cy="50" r="46" />
+      <circle cx="50" cy="50" r="46" />
+    </svg>
+  );
+}
 
 function Splash({ app }: { app: boolean }) {
   const [show, setShow] = useState(false);
@@ -75,18 +91,14 @@ function Splash({ app }: { app: boolean }) {
         <motion.div className="splash" aria-hidden="true"
           initial={{ y: 0 }} animate={{ y: lift ? "-100%" : 0 }}
           transition={{ duration: .62, ease: EASE_LIFT }}>
-          <div className="flex flex-col items-center gap-4">
-            {/* the mark draws its three arms and swings a third of a turn into
-                place on its own (Logo's `draw`); the halo is the intro's own
-                gesture - one ring expanding out from where it lands */}
+          <div className="flex flex-col items-center gap-[18px]">
+            {/* the aperture opens: bloom, then the blades swing in (Logo's
+                `draw`), then the iris widens off the mark's own rim */}
             <div className="relative grid place-items-center">
-              <motion.span className="absolute rounded-full border border-accent"
-                initial={{ width: 78, height: 78, opacity: 0.5 }}
-                animate={{ width: 190, height: 190, opacity: 0 }}
-                transition={{ delay: 0.35, duration: 1.15, ease: EASE_SILK }}
-              />
-              <motion.div initial={{ opacity: 0, scale: 0.72 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: .7, ease: EASE_SILK }}>
+              <span className="bloom" />
+              <Iris size={104} />
+              <motion.div initial={{ opacity: 0, scale: 0.68 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: .78, ease: EASE_SILK }}>
                 <Logo size={104} draw />
               </motion.div>
             </div>
@@ -97,9 +109,10 @@ function Splash({ app }: { app: boolean }) {
               ))}
               <motion.span variants={rise} className="text-accent">.ai</motion.span>
             </motion.div>
+            <div className="splash-rule w-[168px]" />
             <motion.p className="font-mono text-[10px] uppercase tracking-[.2em] text-dim"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: .95, duration: .5 }}>
+              transition={{ delay: 1.15, duration: .5 }}>
               open source · programs · skills
             </motion.p>
           </div>
