@@ -586,31 +586,47 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 
 /* ── site splash: one-time intro curtain ─────────────────────────────
    The curtain's own motion (it lifts) is framer-motion's, in Shell.tsx; this
-   rule only places it. The mark inside draws itself - see .mark-live. */
+   rule only places it. The mark inside draws itself - see Logo(). */
 .splash {
   position: fixed; inset: 0; z-index: 95; background: var(--color-paper);
   display: grid; place-items: center; pointer-events: none;
   will-change: transform;
 }
 
-/* the header mark: the whole figure turns slowly while the page is open - the
-   one thing it does when nothing is happening to it - and the inner group
-   answers a hover with a quarter of a turn, which is exactly the spacing
-   between two blades, so it looks like the next one has taken the front.
-   Entrance and the blade sweep-in are framer-motion's, in Logo(). */
-.mark-live { animation: markSpin 34s linear infinite; }
-@keyframes markSpin { to { transform: rotate(360deg); } }
-.mark-turn { transition: transform .62s var(--ease-silk); }
-a:hover .mark-turn, button:hover .mark-turn { transform: rotate(90deg); }
+/* the header mark: it sits still - a hatch has no quarter-turn symmetry to
+   spin through, and rotating one just flickers. What it does instead is answer
+   a hover by re-laying itself: each band collapses along its own length and
+   grows back, one after another from the same side the entrance starts on.
+   Entrance is framer-motion's, in Logo(); this is the hover. */
+.mark-turn > path {
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+}
+a:hover .mark-turn > path, button:hover .mark-turn > path {
+  animation: bandComb .58s cubic-bezier(.22, 1, .36, 1) both;
+}
+a:hover .mark-turn > path:nth-child(2), button:hover .mark-turn > path:nth-child(2) { animation-delay: .05s; }
+a:hover .mark-turn > path:nth-child(3), button:hover .mark-turn > path:nth-child(3) { animation-delay: .1s; }
+a:hover .mark-turn > path:nth-child(4), button:hover .mark-turn > path:nth-child(4) { animation-delay: .15s; }
+a:hover .mark-turn > path:nth-child(5), button:hover .mark-turn > path:nth-child(5) { animation-delay: .2s; }
+a:hover .mark-turn > path:nth-child(6), button:hover .mark-turn > path:nth-child(6) { animation-delay: .25s; }
+a:hover .mark-turn > path:nth-child(7), button:hover .mark-turn > path:nth-child(7) { animation-delay: .3s; }
+a:hover .mark-turn > path:nth-child(8), button:hover .mark-turn > path:nth-child(8) { animation-delay: .35s; }
+a:hover .mark-turn > path:nth-child(9), button:hover .mark-turn > path:nth-child(9) { animation-delay: .4s; }
+a:hover .mark-turn > path:nth-child(10), button:hover .mark-turn > path:nth-child(10) { animation-delay: .45s; }
+@keyframes bandComb {
+  0% { transform: scaleX(1); }
+  34% { transform: scaleX(.05); }
+  100% { transform: scaleX(1); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .mark-live { animation: none; }
-  .mark-turn { transition: none; }
+  a:hover .mark-turn > path, button:hover .mark-turn > path { animation: none; }
 }
 
-/* ── the intro's aperture ───────────────────────────────────────────
-   The curtain opens the way the mark is built: the blades come in from
-   outside the ring and turn a quarter into place (Logo's `draw`), three
-   hairline circles start on the mark's own rim and widen out like an iris,
+/* ── the intro ──────────────────────────────────────────────────────
+   The curtain opens the way the mark is built: the disc arrives, its bands
+   comb in along their own length (Logo's `draw`), three hairline circles
+   start on the mark's own rim and widen outward,
    a soft green bloom swells behind it once, and a hairline rule grows under
    the wordmark before the whole thing lifts.
 
