@@ -1,77 +1,68 @@
 /* ══ mark.ts — the brand mark ═══════════════════════════════════════
-   An aperture ring: four congruent blades set at right angles around an empty
-   centre. Each blade is a wide sweep that narrows into a thin tail and hooks
-   under the next one, so the ring reads as a strip twisting over itself. The
-   blades are drawn; the diamond they leave open in the middle is what you
-   notice first.
+   A hatched globe: ten parallel bands laid across a circle at 43°, each one
+   cut off exactly at the rim, so the silhouette is a clean disc and the stripes
+   do the talking. Nothing here is invented - the angle, the pitch and the band
+   width were fitted against the supplied artwork by scoring candidate geometry
+   against its pixel mask (scratch/stripes-fit.mjs keeps the fitter), and the
+   winning numbers are the ones below: IoU 0.82 against the reference, which is
+   about as close as a JPEG with soft edges allows.
 
-   Traced from the reference artwork rather than invented: the outline was
-   thresholded, simplified and re-smoothed into the thirty points below
-   (scratch/trace.mjs keeps the generator), and the other three blades are this
-   one turned a quarter, a half and three quarters of the way round. That is why
-   the mark is exactly four-fold symmetric - a quarter turn puts it back where
-   it started, which is the rotation the header hover and the intro both use.
+   Every band is a real chord band - two straight edges and two circular arcs -
+   so the mark needs no clip path and no mask. STRIPES are drawn upright (bands
+   horizontal) so the animation can simply grow them along their own length;
+   STRIPES_LEANED has the tilt baked into the coordinates for the places that
+   cannot carry a group transform.
 
-   No plate and no black field. The colour is currentColor with one blade in the
-   brand accent, so the same component reads correctly on paper and on graphite.
+   No plate and no field. The colour is currentColor, so the same component
+   reads correctly on paper and on graphite.
    ══ */
 
-/** One blade, as points relative to the centre of the 100x100 box. */
-const BLADE: [number, number][] = [
-  [-34.76, 2.3], [-31.2, 2.56], [-24.91, 6.42], [-17.23, 12.45], [-9.33, 21.22],
-  [-2.04, 30.85], [2.73, 36.58], [6.6, 38.97], [11.8, 40.53], [17.84, 40.58],
-  [24.65, 38.88], [20.53, 41.18], [15.28, 43.4], [9.55, 45.05], [3.3, 45.83],
-  [-3.56, 45.83], [-9.63, 45.05], [-16.06, 42.96], [-23.69, 39.14], [-30.07, 34.67],
-  [-34.02, 30.9], [-26.17, 35.89], [-17.53, 40.1], [-16.97, 36.93], [-17.53, 31.51],
-  [-19.7, 25.6], [-23.56, 20.18], [-29.94, 14.15], [-38.88, 7.29], [-37.15, 4.77],
-];
+/** Fitted from the reference artwork, on a 100x100 box. The disc is the full
+ *  box; pitch, band width and tilt are the mean of the ten band centres and
+ *  half-max widths read off the reference's perpendicular profile
+ *  (scratch/stripes-profile.mjs keeps the reader). */
+export const ANGLE = 43;
+export const RADIUS = 50;
+export const PITCH = 10.05;
+export const WIDTH = 5.38;
+export const COUNT = 10;
 
-const f = (n: number) => Math.round(n * 100) / 100;
+const f = (n: number) => Math.round(n * 1000) / 1000;
 
-/** Turn a point ring by `deg` about the centre. */
-function spin(pts: [number, number][], deg: number): [number, number][] {
-  if (!deg) return pts;
-  const a = (deg * Math.PI) / 180;
-  const s = Math.sin(a);
-  const c = Math.cos(a);
-  return pts.map(([x, y]) => [f(x * c - y * s), f(x * s + y * c)]);
+/** Signed perpendicular offset of band k from the centre of the disc. */
+export function offset(k: number): number {
+  return (k - (COUNT - 1) / 2) * PITCH;
 }
 
-/** Catmull-Rom through a closed point ring, emitted as cubic beziers. The
- *  tangent at each point eases out to nothing wherever the ring folds back on
- *  itself, so the blade tips stay points instead of overshooting into loops. */
-function outline(pts: [number, number][]): string {
-  const n = pts.length;
-  const len = (a: number[], b: number[]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const tan = (i: number): [number, number] => {
-    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n];
-    const back = len(p0, p1), fwd = len(p1, p2), span = len(p0, p2);
-    const k = Math.max(0, Math.min(1, (span / (back + fwd || 1) - 0.5) / 0.35));
-    return [((p2[0] - p0[0]) / 6) * k, ((p2[1] - p0[1]) / 6) * k];
+/** A band at offset `v`, half `WIDTH/2` across, trimmed to a circle of
+ *  `RADIUS`: out along +u, arc round the rim, back along the far edge, arc
+ *  home. Coordinates are (u along the band, v across it). */
+function band(v: number, rot: number): string {
+  const h = WIDTH / 2;
+  const a = v - h;
+  const b = v + h;
+  const La = Math.sqrt(Math.max(0, RADIUS * RADIUS - a * a));
+  const Lb = Math.sqrt(Math.max(0, RADIUS * RADIUS - b * b));
+  const c = Math.cos(rot);
+  const s = Math.sin(rot);
+  const P = (u: number, w: number) => {
+    const x = u * c - w * s;
+    const y = u * s + w * c;
+    return `${f(x + RADIUS)} ${f(y + RADIUS)}`;
   };
-  const T = pts.map((_, i) => tan(i));
-  let d = `M${f(pts[0][0] + 50)} ${f(pts[0][1] + 50)}`;
-  for (let i = 0; i < n; i++) {
-    const p1 = pts[i], p2 = pts[(i + 1) % n];
-    const cap = len(p1, p2) / 2.4;
-    const limit = (t: [number, number]): [number, number] => {
-      const m = Math.hypot(t[0], t[1]);
-      return cap > 0 && m > cap ? [t[0] * cap / m, t[1] * cap / m] : t;
-    };
-    const t1 = limit(T[i]), t2 = limit(T[(i + 1) % n]);
-    d += `C${f(p1[0] + t1[0] + 50)} ${f(p1[1] + t1[1] + 50)} ${f(p2[0] - t2[0] + 50)} ${f(p2[1] - t2[1] + 50)} ${f(p2[0] + 50)} ${f(p2[1] + 50)}`;
-  }
-  return `${d}Z`;
+  const r = f(RADIUS);
+  return (
+    `M${P(La, a)}A${r} ${r} 0 0 1 ${P(Lb, b)}` +
+    `L${P(-Lb, b)}A${r} ${r} 0 0 1 ${P(-La, a)}Z`
+  );
 }
 
-/** The four blades, in viewBox 0 0 100 100. */
-export const BLADES = [0, 90, 180, 270].map((deg) => outline(spin(BLADE, deg)));
+/** Bands upright, in viewBox 0 0 100 100 — the caller tilts them with a group
+ *  rotation, which keeps `scaleX` free as the reveal animation. */
+export const STRIPES = Array.from({ length: COUNT }, (_, k) => band(offset(k), 0));
 
-/** Unit vectors pointing out through the middle of each blade - where a blade
- *  comes from when the aperture opens, and where it slides back to on hover. */
-const MASS = BLADE.reduce(([ax, ay], [x, y]) => [ax + x / BLADE.length, ay + y / BLADE.length], [0, 0]);
-const MAG = Math.hypot(MASS[0], MASS[1]) || 1;
-export const BLADE_OUT: [number, number][] = [0, 90, 180, 270].map((deg) => {
-  const [x, y] = spin([MASS], deg)[0];
-  return [Math.round((x / MAG) * 1000) / 1000, Math.round((y / MAG) * 1000) / 1000];
-});
+/** The same mark with the tilt already in the coordinates, for renderers that
+ *  cannot carry a transform on the group. */
+export const STRIPES_LEANED = Array.from({
+  length: COUNT,
+}, (_, k) => band(offset(k), (-ANGLE * Math.PI) / 180));

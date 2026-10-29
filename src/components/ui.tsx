@@ -4,61 +4,44 @@ import { useState } from "react";
 import type { ReactNode, ImgHTMLAttributes } from "react";
 import { motion } from "framer-motion";
 import { tileBG, initials, hash, LEVEL_LABEL } from "../lib/util";
-import { BLADES, BLADE_OUT } from "../lib/mark";
+import { STRIPES, ANGLE } from "../lib/mark";
 import type { Level } from "../lib/types";
 
-/* An aperture: four congruent blades set at right angles around an empty
-   centre, traced from the reference artwork (src/lib/mark.ts keeps the outline
-   and how it was made). No plate and no black field - the mark sits directly on
-   whatever page it is on.
+/* A hatched globe: ten parallel bands laid across a circle and trimmed to its
+   rim, fitted against the reference artwork (src/lib/mark.ts keeps the numbers
+   and how they were measured). No plate and no black field - the mark sits
+   directly on whatever page it is on, in currentColor, so one component is
+   correct on a cream page and on a near-black one.
 
-   The colour is `currentColor` on three blades and the brand green on the
-   leading one, so one component is correct on a cream page and on a near-black
-   one. It is exactly four-fold symmetric, so a quarter of a turn puts it back
-   where it started; that is the rotation the hover and the intro use, and it is
-   why the blades appear to trade places under a cursor.
-
-   `draw` is the entrance: each blade slides in from just outside its own side of
-   the ring and swings into place while the whole aperture turns a quarter.
-   `live` is the idle motion - a slow, continuous rotation - and the inner group
-   answers a hover with a quarter of the same turn. Reduced-motion visitors get
-   the finished, still mark, as everywhere else on this site. */
-export function Logo({
-  size = 30,
-  draw = false,
-  live = false,
-}: {
-  size?: number;
-  draw?: boolean;
-  live?: boolean;
-}) {
+   `draw` is the entrance: the bands comb in from one side of the disc to the
+   other, each one growing along its own length, so the hatch is laid down the
+   way it would be drawn. The hover does the same thing in the CSS at the bottom
+   of globals.css. There is deliberately no idle rotation - a hatch has no
+   quarter-turn symmetry to hide behind, and spinning it turns the whole mark
+   into a flicker. Reduced-motion visitors get the finished, still mark, as
+   everywhere else on this site. */
+export function Logo({ size = 30, draw = false }: { size?: number; draw?: boolean }) {
   /* The mark never asks here whether the visitor wants motion: that is
      MotionConfig's `reducedMotion="user"` in Shell, and the CSS media query
-     below for the spin and the hover turn. Asking here used to make the
-     server's HTML and the client's first render disagree about the logo's
-     own transform - a hydration mismatch on every page, for every
-     reduced-motion visitor. */
+     in globals.css for the hover comb. Asking here used to make the server's
+     HTML and the client's first render disagree about the logo's own
+     transform - a hydration mismatch on every page, for every reduced-motion
+     visitor. */
   const anim = draw;
   const easeSilk = [0.22, 1, 0.36, 1] as const;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true"
-      className={live ? "mark-live" : undefined}>
-      <motion.g
-        initial={anim ? { rotate: -90, scale: 0.84 } : false}
-        animate={{ rotate: 0, scale: 1 }}
-        transition={{ duration: 1.15, ease: easeSilk }}
-        style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
-        <g className="mark-turn" style={{ transformBox: "view-box", transformOrigin: "50px 50px" }}>
-          {BLADES.map((d, i) => (
-            <motion.path key={i} d={d}
-              fill={i === 0 ? "var(--color-accent)" : "currentColor"}
-              initial={anim ? { x: BLADE_OUT[i][0] * 16, y: BLADE_OUT[i][1] * 16, opacity: 0, rotate: -18 } : false}
-              animate={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
-              transition={{ delay: 0.1 + i * 0.1, duration: 0.68, ease: easeSilk }}
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+      <g transform={`rotate(${-ANGLE} 50 50)`}>
+        <g className="mark-turn">
+          {STRIPES.map((d, i) => (
+            <motion.path key={i} d={d} fill="currentColor"
+              initial={anim ? { scaleX: 0, opacity: 0 } : false}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ delay: 0.14 + i * 0.058, duration: 0.6, ease: easeSilk }}
               style={{ transformBox: "view-box", transformOrigin: "50px 50px" }} />
           ))}
         </g>
-      </motion.g>
+      </g>
     </svg>
   );
 }

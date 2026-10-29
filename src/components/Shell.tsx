@@ -23,12 +23,12 @@ function ScrollManager() {
 /* one-time intro curtain: marketing pages only, decided after mount so
    server HTML never carries it.
 
-   The sequence is the brand, not a spinner. The mark is an aperture, so the
-   intro opens like one: the four blades come in from outside the ring and swing
-   a quarter-turn into place (Logo's own `draw` pass), a bloom swells behind them,
-   three hairline circles start on the mark's rim and widen outward like an iris
-   opening (`.iris` in globals.css), the wordmark rises letter by letter, a
-   hairline rule grows under it, and the line of what the site is fades in last.
+   The sequence is the brand, not a spinner. The mark is a hatched globe, so the
+   intro lays it down: the disc fades up, its ten bands comb in one after
+   another along their own length (Logo's own `draw` pass), a bloom swells
+   behind it, three hairline circles start on the mark's rim and widen outward,
+   the wordmark rises letter by letter, a hairline rule grows under it, and the
+   line of what the site is fades in last.
    Everything resolves at about two seconds, and then the curtain lifts - timed
    to read as an arrival and not a wait. Skipped outright for reduced-motion
    visitors and for every route inside the application shell. */
@@ -38,15 +38,15 @@ const WORD = "cyrus";
 const EASE_SILK = [0.22, 1, 0.36, 1] as const;
 const EASE_LIFT = [0.76, 0, 0.24, 1] as const;
 
-/* The iris: three rings that begin at the mark's own rim. The circles are
-   centred in the same 100x100 box the mark is drawn in, so r=46 is where a
-   blade's outer edge lands; only the stroke widens, never the shape. */
+/* The rings: three circles that begin on the mark's own rim and travel
+   outward. They are centred in the same 100x100 box the disc is drawn in, so
+   r=49 is the rim itself; only the stroke widens, never the shape. */
 function Iris({ size }: { size: number }) {
   return (
     <svg className="iris pointer-events-none absolute" width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="46" />
-      <circle cx="50" cy="50" r="46" />
-      <circle cx="50" cy="50" r="46" />
+      <circle cx="50" cy="50" r="49" />
+      <circle cx="50" cy="50" r="49" />
+      <circle cx="50" cy="50" r="49" />
     </svg>
   );
 }
@@ -92,8 +92,8 @@ function Splash({ app }: { app: boolean }) {
           initial={{ y: 0 }} animate={{ y: lift ? "-100%" : 0 }}
           transition={{ duration: .62, ease: EASE_LIFT }}>
           <div className="flex flex-col items-center gap-[18px]">
-            {/* the aperture opens: bloom, then the blades swing in (Logo's
-                `draw`), then the iris widens off the mark's own rim */}
+            {/* the mark is laid down: bloom, then the bands comb in (Logo's
+                `draw`), then the rings travel out from the disc's own rim */}
             <div className="relative grid place-items-center">
               <span className="bloom" />
               <Iris size={104} />

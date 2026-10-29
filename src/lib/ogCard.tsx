@@ -9,8 +9,9 @@ import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { OgCard as OgCardData } from "@/lib/ogContent";
-/* the brand mark - the same four blades Logo() draws */
-import { BLADES as OG_BLADES } from "@/lib/mark";
+/* the brand mark - the same banded globe Logo() draws, with the tilt already
+   in the coordinates because satori does not lay out an SVG group transform */
+import { STRIPES_LEANED as OG_BANDS } from "@/lib/mark";
 
 const PAPER = "#0e0f10";
 const CREAM = "#17191b";
@@ -69,8 +70,8 @@ function layoutTitle(title: string[]): { lines: string[]; size: number } {
 }
 
 /** The mark from components/ui.tsx, watermarked into the corner. Sized so the
- *  aperture still reads as an aperture - a ring, not an abstract sweep - with
- *  only its outer blade cut by the card's edge. */
+ *  globe still reads as a globe - a full disc of bands, not a sweep - with
+ *  only its outer edge cut by the card's border. */
 function Stamp() {
   return (
     <div
@@ -84,8 +85,8 @@ function Stamp() {
       }}
     >
       <svg width={400} height={400} viewBox="0 0 100 100">
-        {OG_BLADES.map((d, i) => (
-          <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} opacity={i === 0 ? 0.34 : 0.12} />
+        {OG_BANDS.map((d) => (
+          <path key={d} d={d} fill={FOAM} opacity={0.13} />
         ))}
       </svg>
     </div>
@@ -96,8 +97,8 @@ function Mark() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <svg width={54} height={54} viewBox="0 0 100 100">
-        {OG_BLADES.map((d, i) => (
-          <path key={i} d={d} fill={i === 0 ? ACCENT : FOAM} />
+        {OG_BANDS.map((d) => (
+          <path key={d} d={d} fill={FOAM} />
         ))}
       </svg>
       <span style={{ fontSize: 33, fontWeight: 800, color: INK, letterSpacing: -0.8 }}>cyrus.ai</span>
